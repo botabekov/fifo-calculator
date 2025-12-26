@@ -11,6 +11,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
   <style>
+    /* ✅ ВАЖНО: чтобы элементы не "выпирали" */
+    *, *::before, *::after { box-sizing: border-box; }
+
     :root{
       --bg:#f6f8fb;
       --card:#ffffff;
@@ -143,14 +146,29 @@
       background:#fff;
     }
 
-    /* Inputs layout */
+    /* ✅ FIX: чтобы поля в гриде могли сжиматься */
+    .field { min-width: 0; }
+    input, select { min-width: 0; }
+
+    /* ✅ Новый layout: 2 строки
+       1 строка: Тип операции (на всю ширину)
+       2 строка: Количество + Цена (2 колонки)
+       3 строка: кнопка (на всю ширину)
+    */
     #inputBlock{
       margin-top: 12px;
       display:grid;
-      grid-template-columns: 1.3fr 0.9fr 0.9fr;
+      grid-template-columns: 1fr 1fr;
       gap:10px;
-      align-items: end;
+      align-items:end;
     }
+
+    /* Тип операции на всю ширину */
+    #typeField{ grid-column: 1 / -1; }
+
+    /* Кнопка + предупреждение на всю ширину */
+    #addBtn{ grid-column: 1 / -1; }
+    #warn{ grid-column: 1 / -1; margin-top: 2px; min-height: 18px; }
 
     .field label{
       display:block;
@@ -173,12 +191,6 @@
     input:focus, select:focus{
       border-color: rgba(37,99,235,.55);
       box-shadow: 0 0 0 4px rgba(37,99,235,.12);
-    }
-
-    #warn{
-      grid-column: 1 / -1;
-      margin-top: 2px;
-      min-height: 18px;
     }
 
     .btn{
@@ -261,9 +273,17 @@
       text-align: center;
     }
 
-    @media (max-width: 780px){
-      .container{ margin: 14px; padding: 16px; }
+    /* ✅ Очень узко: 1 колонка */
+    @media (max-width: 560px){
       #inputBlock{ grid-template-columns: 1fr; }
+    }
+
+    .sr-only{
+      position:absolute;
+      width:1px;height:1px;
+      padding:0;margin:-1px;
+      overflow:hidden;clip:rect(0,0,0,0);
+      white-space:nowrap;border:0;
     }
   </style>
 </head>
@@ -282,7 +302,7 @@
           <th>Тип</th>
           <th>Кол-во</th>
           <th>Цена</th>
-          <th></th>
+          <th><span class="sr-only">Действия</span></th>
         </tr>
       </thead>
       <tbody>
@@ -291,7 +311,7 @@
     </table>
 
     <div id="inputBlock">
-      <div class="field">
+      <div class="field" id="typeField">
         <label for="type">Тип операции</label>
         <select id="type">
           <option value="Покупка (Приход)">Покупка (Приход)</option>
