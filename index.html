@@ -60,7 +60,8 @@
       position: relative;
       overflow: hidden;
     }
-.ny-ribbon{
+
+    .ny-ribbon{
       position:absolute;
       right:-52px;
       top:14px;
@@ -74,6 +75,7 @@
       transform: rotate(45deg);
       box-shadow: 0 8px 24px rgba(124,45,18,.25);
       border: 1px solid rgba(124,45,18,.18);
+      user-select:none;
     }
 
     .ny-banner{
@@ -92,19 +94,9 @@
       font-size: 20px;
       filter: drop-shadow(0 6px 14px rgba(0,0,0,.15));
     }
-    .ny-text{
-      flex:1;
-      line-height: 1.4;
-    }
-    .ny-title{
-      font-weight: 700;
-      font-size: 15px;
-      letter-spacing: -0.01em;
-    }
-    .ny-subtitle{
-      font-size: 12.5px;
-      opacity:.92;
-    }
+    .ny-text{ flex:1; line-height: 1.4; }
+    .ny-title{ font-weight: 700; font-size: 15px; letter-spacing: -0.01em; }
+    .ny-subtitle{ font-size: 12.5px; opacity:.92; }
     .ny-year{
       background: rgba(255,255,255,.16);
       border: 1px solid rgba(255,255,255,.35);
@@ -141,9 +133,12 @@
     .ny-garland li:nth-child(6){ background:#a855f7; animation-delay:.5s; }
     .ny-garland li:nth-child(7){ background:#10b981; animation-delay:-.3s; }
 
+    /* ✅ ВОТ ТУТ БЫЛА ОШИБКА: не хватало закрывающей скобки } */
     @keyframes twinkle{
       0%,100%{ opacity:.75; transform: translateY(0); }
       50%{ opacity: 1; transform: translateY(2px); }
+    }
+
     h2{
       margin: 4px 0 6px;
       font-size: 22px;
@@ -369,11 +364,12 @@
 
 <body>
   <div class="container" id="calcContainer">
-        <div class="ny-ribbon" aria-hidden="true">2025</div>
+    <div class="ny-ribbon" aria-hidden="true">2025</div>
+
     <h2>Калькулятор FIFO</h2>
     <div class="subtitle">Лёгкий, понятный, без лишнего — работает прямо в браузере</div>
 
-        <div class="ny-banner" role="note" aria-label="Новогоднее оформление">
+    <div class="ny-banner" role="note" aria-label="Новогоднее оформление">
       <div class="ny-icon" aria-hidden="true">🎄</div>
       <div class="ny-text">
         <div class="ny-title">С Новым годом! ✨</div>
@@ -385,7 +381,7 @@
     <ul class="ny-garland" aria-hidden="true">
       <li></li><li></li><li></li><li></li><li></li><li></li><li></li>
     </ul>
-    
+
     <div class="instruction">Добавляйте операции в хронологическом порядке — от первой к последующей.</div>
 
     <table id="operationsTable" aria-label="Список операций">
@@ -488,10 +484,8 @@
 
     const setWarn = (msg='') => { if (els.warn) els.warn.textContent = msg; };
 
-    // ✅ Приходные типы (ведут себя как покупка)
     const isIncomeType = (type) =>
       type === 'Покупка (Приход)' || type === 'Зачисление ЦБ (Приход)';
-
     const isSaleType = (type) => type === 'Продажа (Уход)';
     const isWriteOffType = (type) => type === 'Списание ЦБ (Уход)';
 
@@ -518,7 +512,6 @@
       state.ops.forEach((op, i) => {
         const tr = document.createElement('tr');
 
-        // подсветка: приход как purchase, продажа как sale, списание как transfer
         tr.className = isIncomeType(op.type) ? 'purchase' : (isSaleType(op.type) ? 'sale' : 'transfer');
 
         const priceCell = isWriteOffType(op.type) ? '-' : fmt2(op.price);
@@ -647,7 +640,6 @@
       els.price.disabled = hidePrice;
       if (hidePrice) els.price.value = '';
 
-      // если цена скрыта — количество на всю ширину
       if (els.qtyField) {
         els.qtyField.style.gridColumn = hidePrice ? '1 / -1' : '';
       }
