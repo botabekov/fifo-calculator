@@ -5,13 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Калькулятор FIFO — стильная версия</title>
 
-  <!-- Modern font -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
   <style>
-    /* ✅ ВАЖНО: чтобы элементы не "выпирали" */
+    /* ✅ чтобы input/select не "выпирали" и не наезжали */
     *, *::before, *::after { box-sizing: border-box; }
 
     :root{
@@ -131,7 +130,6 @@
 
     .muted{color:var(--muted);font-size:12px}
 
-    /* subtle row tints */
     .purchase td{ background: rgba(37,99,235,.06); }
     .sale td{ background: rgba(16,185,129,.08); }
     .transfer td{ background: rgba(245,158,11,.10); }
@@ -146,29 +144,27 @@
       background:#fff;
     }
 
-    /* ✅ FIX: чтобы поля в гриде могли сжиматься */
-    .field { min-width: 0; }
-    input, select { min-width: 0; }
-
-    /* ✅ Новый layout: 2 строки
-       1 строка: Тип операции (на всю ширину)
-       2 строка: Количество + Цена (2 колонки)
-       3 строка: кнопка (на всю ширину)
-    */
+    /* ✅ новая структура формы без общего grid (самый стабильный вариант) */
     #inputBlock{
       margin-top: 12px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+
+    .formRow2{
       display:grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
       gap:10px;
       align-items:end;
     }
 
-    /* Тип операции на всю ширину */
-    #typeField{ grid-column: 1 / -1; }
+    @media (max-width: 560px){
+      .formRow2{ grid-template-columns: 1fr; }
+    }
 
-    /* Кнопка + предупреждение на всю ширину */
-    #addBtn{ grid-column: 1 / -1; }
-    #warn{ grid-column: 1 / -1; margin-top: 2px; min-height: 18px; }
+    .field{ min-width:0; }
+    input,select{ min-width:0; }
 
     .field label{
       display:block;
@@ -191,6 +187,11 @@
     input:focus, select:focus{
       border-color: rgba(37,99,235,.55);
       box-shadow: 0 0 0 4px rgba(37,99,235,.12);
+    }
+
+    #warn{
+      margin-top: 2px;
+      min-height: 18px;
     }
 
     .btn{
@@ -273,11 +274,6 @@
       text-align: center;
     }
 
-    /* ✅ Очень узко: 1 колонка */
-    @media (max-width: 560px){
-      #inputBlock{ grid-template-columns: 1fr; }
-    }
-
     .sr-only{
       position:absolute;
       width:1px;height:1px;
@@ -320,14 +316,16 @@
         </select>
       </div>
 
-      <div class="field">
-        <label for="qty">Количество</label>
-        <input type="number" id="qty" placeholder="целое число" min="1" step="1" inputmode="numeric" />
-      </div>
+      <div class="formRow2" id="row2">
+        <div class="field" id="qtyField">
+          <label for="qty">Количество</label>
+          <input type="number" id="qty" placeholder="целое число" min="1" step="1" inputmode="numeric" />
+        </div>
 
-      <div class="field" id="priceField">
-        <label for="price">Цена</label>
-        <input type="text" id="price" placeholder="точка или запятая" inputmode="decimal" />
+        <div class="field" id="priceField">
+          <label for="price">Цена</label>
+          <input type="text" id="price" placeholder="точка или запятая" inputmode="decimal" />
+        </div>
       </div>
 
       <button class="btn" id="addBtn">Добавить операцию</button>
@@ -345,7 +343,6 @@
     <div class="tip">Подсказка: Enter в полях добавляет операцию.</div>
   </div>
 
-  <!-- Export to PNG -->
   <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 
   <script>
@@ -372,6 +369,7 @@
       els.qty = $('#qty');
       els.price = $('#price');
       els.priceField = $('#priceField');
+      els.qtyField = $('#qtyField');
       els.add = $('#addBtn');
       els.warn = $('#warn');
       els.toggleResults = $('#toggleResultsBtn');
@@ -383,8 +381,8 @@
     };
 
     const state = {
-      ops: [],     // [{type, qty, price}]
-      lots: [],    // [{qty, price}] - FIFO lots
+      ops: [],
+      lots: [],
       details: [],
       totalQty: 0,
       avgPrice: 0
@@ -518,7 +516,6 @@
           }
 
           op.avgWriteOff = used ? round(total / used, 2) : 0;
-
           lotDetails += `: ${op.qty} шт.\n${writeOffInfo.join('\n')}\n - Средняя цена списания: ${fmt2(op.avgWriteOff)}.`;
         }
 
@@ -539,9 +536,15 @@
 
     const onTypeChange = () => {
       const isWriteOff = els.type.value === 'Списание ЦБ (Уход)';
+
       els.priceField.style.display = isWriteOff ? 'none' : 'block';
       els.price.disabled = isWriteOff;
       if (isWriteOff) els.price.value = '';
+
+      /* ✅ когда цена скрыта — количество занимает всю строку */
+      if (els.qtyField) {
+        els.qtyField.style.gridColumn = isWriteOff ? '1 / -1' : '';
+      }
     };
 
     const addOperation = () => {
@@ -675,7 +678,6 @@
       els.reset.addEventListener('click', resetAll);
       els.export.addEventListener('click', exportPng);
 
-      // Enter to add
       els.qty.addEventListener('keydown', onKeyDown);
       els.price.addEventListener('keydown', onKeyDown);
       els.type.addEventListener('keydown', onKeyDown);
