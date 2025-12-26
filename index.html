@@ -3,39 +3,279 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Калькулятор FIFO — стабильная и быстрая версия</title>
+  <title>Калькулятор FIFO — стильная версия</title>
+
+  <!-- Modern font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
   <style>
-    :root{--muted:#667085;--line:#e6eaf0;--bg:#f4f6f8;--ink:#222;--blue:#0066ff;--blue2:#0050d1;--danger:#ff5a5a;--danger2:#e60000}
+    :root{
+      --bg:#f6f8fb;
+      --card:#ffffff;
+      --ink:#0f172a;
+      --muted:#64748b;
+      --line:#e5e7eb;
+
+      --primary:#2563eb;
+      --primary2:#1d4ed8;
+
+      --info1:#0ea5e9;
+      --info2:#0284c7;
+
+      --success1:#10b981;
+      --success2:#059669;
+
+      --danger:#ef4444;
+      --danger2:#dc2626;
+
+      --shadow: 0 12px 30px rgba(2, 8, 23, .08);
+      --shadow2: 0 2px 10px rgba(2, 8, 23, .06);
+
+      --r12:12px;
+      --r16:16px;
+    }
+
     html,body{height:100%}
-    body{font-family:'Times New Roman',serif;background:var(--bg);color:var(--ink);margin:0}
-    .container{max-width:760px;margin:30px auto;background:#fff;border-radius:14px;box-shadow:0 4px 12px rgba(0,0,0,.08);padding:20px}
-    h2{text-align:center;font-size:18px;margin:0 0 14px}
-    .instruction{background:#fef9e7;border:1px solid #f1d76e;border-radius:10px;padding:10px;font-size:13px;margin-bottom:12px;color:#665c00}
-    table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:10px;table-layout:fixed}
-    th,td{border-bottom:1px solid var(--line);padding:8px;text-align:center;word-wrap:break-word}
-    th:first-child,td:first-child{width:40px}
-    th{background:#f9fafb;color:#333;font-weight:600}
-    .purchase{background:#e9f2ff;color:#0043ce;font-weight:600}
-    .sale{background:#eaffea;color:#006b00;font-weight:600}
-    .transfer{background:#fff6e6;color:#9c6400;font-weight:600}
-    .btn{background:var(--blue);color:#fff;border:none;padding:10px;border-radius:8px;cursor:pointer;font-size:14px;transition:background .2s ease}
-    .btn:hover{background:var(--blue2)}
-    .btn-del{background:var(--danger);color:#fff;border:none;border-radius:6px;padding:4px 8px;font-size:12px;cursor:pointer;transition:background .2s ease}
-    .btn-del:hover{background:var(--danger2)}
-    input,select{width:100%;padding:8px;border-radius:8px;border:1px solid #ccd3db;margin-bottom:8px;font-size:14px}
-    .actions{display:flex;gap:8px;margin-top:12px}
-    .actions .btn{flex:1}
+    body{
+      margin:0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color:var(--ink);
+      background:
+        radial-gradient(1200px 600px at 10% -10%, rgba(37,99,235,.10), transparent 60%),
+        radial-gradient(900px 600px at 100% 0%, rgba(16,185,129,.10), transparent 55%),
+        var(--bg);
+    }
+
+    .container{
+      max-width: 980px;
+      margin: 28px auto;
+      padding: 22px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--r16);
+      box-shadow: var(--shadow);
+    }
+
+    h2{
+      margin: 4px 0 6px;
+      font-size: 22px;
+      letter-spacing: -0.02em;
+      text-align:center;
+    }
+
+    .subtitle{
+      text-align:center;
+      color:var(--muted);
+      font-size: 13px;
+      margin-bottom: 14px;
+    }
+
+    .instruction{
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+      background: #fff7ed;
+      border:1px solid #fed7aa;
+      color:#7c2d12;
+      border-radius: var(--r12);
+      padding: 12px 12px;
+      font-size: 13px;
+      line-height: 1.4;
+      margin-bottom: 14px;
+    }
+    .instruction:before{
+      content:"💡";
+      font-size: 16px;
+      line-height: 1.2;
+      margin-top: 1px;
+    }
+
+    table{
+      width:100%;
+      border-collapse:separate;
+      border-spacing:0;
+      font-size: 13px;
+      margin-bottom: 12px;
+      table-layout:fixed;
+      overflow:hidden;
+      border:1px solid var(--line);
+      border-radius: var(--r12);
+      box-shadow: var(--shadow2);
+    }
+
+    th,td{
+      border-bottom:1px solid var(--line);
+      padding:10px 10px;
+      text-align:center;
+      word-wrap:break-word;
+      background:#fff;
+    }
+
+    thead th{
+      background:#f8fafc;
+      color:#334155;
+      font-weight:600;
+    }
+
+    tbody tr:hover td{
+      background:#f8fafc;
+    }
+
+    th:first-child, td:first-child{width:56px}
+    th:last-child, td:last-child{width:72px}
+
     .muted{color:var(--muted);font-size:12px}
-    .info-line{font-size:13px;color:#333;text-align:left;margin:4px 0;padding-left:8px;font-style:italic}
-    #resultsBox{display:none;background:#f9fafb;border:1px solid #ccd3db;border-radius:10px;padding:12px;margin-top:12px;font-size:13px;white-space:pre-line;line-height:1.6}
+
+    /* subtle row tints */
+    .purchase td{ background: rgba(37,99,235,.06); }
+    .sale td{ background: rgba(16,185,129,.08); }
+    .transfer td{ background: rgba(245,158,11,.10); }
+
+    .info-line{
+      text-align:left;
+      font-size: 12.5px;
+      color:#0f172a;
+      padding-left: 12px;
+      font-style: normal;
+      opacity:.9;
+      background:#fff;
+    }
+
+    /* Inputs layout */
+    #inputBlock{
+      margin-top: 12px;
+      display:grid;
+      grid-template-columns: 1.3fr 0.9fr 0.9fr;
+      gap:10px;
+      align-items: end;
+    }
+
+    .field label{
+      display:block;
+      font-size:12px;
+      color:var(--muted);
+      margin: 0 0 6px 2px;
+      text-align:left;
+    }
+
+    input,select{
+      width:100%;
+      padding:10px 12px;
+      border-radius: 12px;
+      border:1px solid var(--line);
+      font-size: 14px;
+      background:#fff;
+      outline:none;
+      transition: box-shadow .15s ease, border-color .15s ease;
+    }
+    input:focus, select:focus{
+      border-color: rgba(37,99,235,.55);
+      box-shadow: 0 0 0 4px rgba(37,99,235,.12);
+    }
+
+    #warn{
+      grid-column: 1 / -1;
+      margin-top: 2px;
+      min-height: 18px;
+    }
+
+    .btn{
+      border:none;
+      border-radius: 12px;
+      padding: 11px 14px;
+      cursor:pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: transform .08s ease, filter .15s ease, background .15s ease;
+      box-shadow: var(--shadow2);
+    }
+    .btn:active{ transform: translateY(1px); }
+
+    #addBtn{
+      background: linear-gradient(180deg, var(--primary), var(--primary2));
+      color:#fff;
+      width:100%;
+    }
+
+    #toggleResultsBtn{
+      background: linear-gradient(180deg, var(--info1), var(--info2));
+      color:#fff;
+      width:100%;
+      margin-top: 10px;
+    }
+
+    .actions{
+      display:flex;
+      gap:10px;
+      margin-top: 10px;
+    }
+    .actions .btn{flex:1}
+
+    #resetBtn{
+      background:#f1f5f9;
+      color:#0f172a;
+      border: 1px solid var(--line);
+      box-shadow: none;
+    }
+
+    #exportBtn{
+      background: linear-gradient(180deg, var(--success1), var(--success2));
+      color:#fff;
+    }
+
+    .btn-del{
+      width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      border: 1px solid rgba(239,68,68,.25);
+      background: rgba(239,68,68,.08);
+      color: var(--danger2);
+      cursor:pointer;
+      font-size: 16px;
+      line-height: 1;
+      transition: background .15s ease, transform .08s ease;
+    }
+    .btn-del:hover{ background: rgba(239,68,68,.14); }
+    .btn-del:active{ transform: translateY(1px); }
+
+    #resultsBox{
+      display:none;
+      background:#0b1220;
+      color:#e5e7eb;
+      border:1px solid rgba(148,163,184,.25);
+      border-radius: var(--r12);
+      padding: 12px 12px;
+      margin-top: 12px;
+      font-size: 13px;
+      white-space: pre-line;
+      line-height: 1.6;
+      box-shadow: var(--shadow2);
+    }
+
+    .tip{
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
+    }
+
+    @media (max-width: 780px){
+      .container{ margin: 14px; padding: 16px; }
+      #inputBlock{ grid-template-columns: 1fr; }
+    }
   </style>
 </head>
+
 <body>
   <div class="container" id="calcContainer">
     <h2>Калькулятор FIFO</h2>
-    <div class="instruction">Добавляйте операции в хронологическом порядке – от первой к последующей.</div>
+    <div class="subtitle">Лёгкий, понятный, без лишнего — работает прямо в браузере</div>
 
-    <table id="operationsTable">
+    <div class="instruction">Добавляйте операции в хронологическом порядке — от первой к последующей.</div>
+
+    <table id="operationsTable" aria-label="Список операций">
       <thead>
         <tr>
           <th>№</th>
@@ -45,173 +285,381 @@
           <th></th>
         </tr>
       </thead>
-      <tbody><tr><td colspan="5" class="muted">Нет операций</td></tr></tbody>
+      <tbody>
+        <tr><td colspan="5" class="muted">Нет операций</td></tr>
+      </tbody>
     </table>
 
     <div id="inputBlock">
-      <select id="type">
-        <option value="Покупка (Приход)">Покупка (Приход)</option>
-        <option value="Продажа (Уход)">Продажа (Уход)</option>
-        <option value="Списание ЦБ (Уход)">Списание ЦБ (Уход)</option>
-      </select>
-      <input type="number" id="qty" placeholder="Количество (целое)" min="1" />
-      <input type="number" id="price" placeholder="Цена (точка или запятая)" step="0.01" min="0" />
-      <div class="actions">
-        <button class="btn" id="addBtn">Добавить операцию</button>
+      <div class="field">
+        <label for="type">Тип операции</label>
+        <select id="type">
+          <option value="Покупка (Приход)">Покупка (Приход)</option>
+          <option value="Продажа (Уход)">Продажа (Уход)</option>
+          <option value="Списание ЦБ (Уход)">Списание ЦБ (Уход)</option>
+        </select>
       </div>
+
+      <div class="field">
+        <label for="qty">Количество</label>
+        <input type="number" id="qty" placeholder="целое число" min="1" step="1" inputmode="numeric" />
+      </div>
+
+      <div class="field" id="priceField">
+        <label for="price">Цена</label>
+        <input type="text" id="price" placeholder="точка или запятая" inputmode="decimal" />
+      </div>
+
+      <button class="btn" id="addBtn">Добавить операцию</button>
       <div id="warn" class="muted" aria-live="polite"></div>
     </div>
 
-    <button class="btn" style="background:#00897b;width:100%;margin-top:10px" id="toggleResultsBtn">Показать расчёты</button>
+    <button class="btn" id="toggleResultsBtn">Показать расчёты</button>
     <div id="resultsBox"></div>
 
     <div class="actions">
-      <button class="btn" style="background:#e5e7eb;color:#111827" id="resetBtn">Очистить всё</button>
-      <button class="btn" style="background:#009688" id="exportBtn">Выгрузить</button>
+      <button class="btn" id="resetBtn">Очистить всё</button>
+      <button class="btn" id="exportBtn">Выгрузить PNG</button>
     </div>
+
+    <div class="tip">Подсказка: Enter в полях добавляет операцию.</div>
   </div>
 
+  <!-- Export to PNG -->
   <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+
   <script>
   (function(){
-    const $=(sel,root=document)=>root.querySelector(sel);
-    const round=(n,d=2)=>Math.round((n+Number.EPSILON)*10**d)/10**d;
+    const $ = (sel, root=document) => root.querySelector(sel);
 
-    const els={};
-    const bindEls=()=>{
-      els.tableBody=$('#operationsTable tbody');
-      els.type=$('#type');
-      els.qty=$('#qty');
-      els.price=$('#price');
-      els.add=$('#addBtn');
-      els.warn=$('#warn');
-      els.toggleResults=$('#toggleResultsBtn');
-      els.results=$('#resultsBox');
-      els.reset=$('#resetBtn');
-      els.export=$('#exportBtn');
+    const round = (n, d=2) => {
+      const p = 10 ** d;
+      return Math.round((n + Number.EPSILON) * p) / p;
     };
 
-    const state={ops:[],lots:[],totalQty:0,avgPrice:0,details:[]};
+    const parseNum = (v) => {
+      const s = String(v ?? "").trim().replace(/\s+/g, "").replace(",", ".");
+      const n = Number(s);
+      return Number.isFinite(n) ? n : NaN;
+    };
 
-    const setWarn=(msg='')=>{if(els.warn)els.warn.textContent=msg;};
+    const fmt2 = (n) => Number.isFinite(n) ? round(n,2).toFixed(2) : "-";
 
-    const renderRows=()=>{
-      if(!els.tableBody)return;
-      const body=els.tableBody;
-      body.innerHTML=state.ops.length?'':'<tr><td colspan="5" class="muted">Нет операций</td></tr>';
-      const frag=document.createDocumentFragment();
-      state.ops.forEach((op,i)=>{
-        const tr=document.createElement('tr');
-        tr.className=op.type.includes('Покупка')?'purchase':(op.type.includes('Продажа')?'sale':'transfer');
-        tr.innerHTML=`<td>${i+1}</td><td>${op.type}</td><td>${op.qty}</td><td>${op.price??'-'}</td><td><button class='btn-del' data-i='${i}'>×</button></td>`;
-        frag.appendChild(tr);
-        const info=document.createElement('tr');
-        if(op.type==='Покупка (Приход)'||op.type==='Продажа (Уход)'){
-          info.innerHTML=`<td colspan='5' class='info-line'>📊 Остаток после операции: ${op.remain} шт. по средневзвешенной цене ${op.avgRemain}</td>`;
-        }else{
-          info.innerHTML=`<td colspan='5' class='info-line'>📊 Списано ЦБ: ${op.qty} шт. по средневзвешенной цене: ${op.avgPrice}<br>📊 Остаток после операции: ${op.remain} шт. по средневзвешенной цене ${op.avgRemain}</td>`;
+    const els = {};
+    const bindEls = () => {
+      els.tableBody = $('#operationsTable tbody');
+      els.type = $('#type');
+      els.qty = $('#qty');
+      els.price = $('#price');
+      els.priceField = $('#priceField');
+      els.add = $('#addBtn');
+      els.warn = $('#warn');
+      els.toggleResults = $('#toggleResultsBtn');
+      els.results = $('#resultsBox');
+      els.reset = $('#resetBtn');
+      els.export = $('#exportBtn');
+      els.container = $('#calcContainer');
+      els.table = $('#operationsTable');
+    };
+
+    const state = {
+      ops: [],     // [{type, qty, price}]
+      lots: [],    // [{qty, price}] - FIFO lots
+      details: [],
+      totalQty: 0,
+      avgPrice: 0
+    };
+
+    const setWarn = (msg='') => { if (els.warn) els.warn.textContent = msg; };
+
+    const recalcTotals = () => {
+      let q = 0, v = 0;
+      for (const lot of state.lots) {
+        if (lot.qty > 0) {
+          q += lot.qty;
+          v += lot.qty * lot.price;
         }
+      }
+      state.totalQty = q;
+      state.avgPrice = q ? round(v / q, 2) : 0;
+    };
+
+    const renderRows = () => {
+      if (!els.tableBody) return;
+
+      const body = els.tableBody;
+      body.innerHTML = state.ops.length ? '' : '<tr><td colspan="5" class="muted">Нет операций</td></tr>';
+
+      const frag = document.createDocumentFragment();
+
+      state.ops.forEach((op, i) => {
+        const tr = document.createElement('tr');
+        tr.className =
+          op.type.includes('Покупка') ? 'purchase' :
+          op.type.includes('Продажа') ? 'sale' : 'transfer';
+
+        const priceCell = (op.type === 'Списание ЦБ (Уход)') ? '-' : fmt2(op.price);
+
+        tr.innerHTML = `
+          <td>${i+1}</td>
+          <td>${op.type}</td>
+          <td>${op.qty}</td>
+          <td>${priceCell}</td>
+          <td><button class="btn-del" data-i="${i}" title="Удалить">×</button></td>
+        `;
+        frag.appendChild(tr);
+
+        const info = document.createElement('tr');
+        const avgRemain = fmt2(op.avgRemain);
+
+        if (op.type === 'Списание ЦБ (Уход)') {
+          info.innerHTML = `
+            <td colspan="5" class="info-line">
+              📌 Списано: <b>${op.qty}</b> шт. (средняя цена списания: <b>${fmt2(op.avgWriteOff)}</b>)<br>
+              📊 Остаток: <b>${op.remain}</b> шт. (средняя цена остатка: <b>${avgRemain}</b>)
+            </td>
+          `;
+        } else {
+          info.innerHTML = `
+            <td colspan="5" class="info-line">
+              📊 Остаток: <b>${op.remain}</b> шт. (средняя цена остатка: <b>${avgRemain}</b>)
+            </td>
+          `;
+        }
+
         frag.appendChild(info);
       });
+
       body.appendChild(frag);
     };
 
-    const recalcTotals=()=>{
-      state.totalQty=state.lots.reduce((s,l)=>s+l.qty,0);
-      const totalVal=state.lots.reduce((s,l)=>s+l.qty*l.price,0);
-      state.avgPrice=state.totalQty?round(totalVal/state.totalQty,2):0;
-    };
-
-    const compute=()=>{
-      state.lots=[]; state.details=[];
-      for(const [index, op] of state.ops.entries()){
-        let num=index+1;
-        let detailLine=`${num} - Операция: ${op.type}`;
-        let lotDetails='';
-        if(op.type==='Покупка (Приход)'){
-          state.lots.push({qty:op.qty,price:op.price});
-          lotDetails+=`: ${op.qty} шт. по цене ${op.price}.`;
-        }else if(op.type==='Продажа (Уход)'){
-          let remain=op.qty, soldFrom=[];
-          while(remain>0&&state.lots.length){
-            const lot=state.lots[0];
-            const used=Math.min(remain,lot.qty);
-            soldFrom.push(` - Продано ${used} шт. по цене ${lot.price}.`);
-            lot.qty-=used; remain-=used; if(lot.qty===0){state.lots.shift();}
-          }
-          lotDetails+=`: ${op.qty} шт.\n${soldFrom.join('\n')}`;
-        }else if(op.type==='Списание ЦБ (Уход)'){
-          let remain=op.qty,total=0,used=0,writeOffInfo=[];
-          for(const lot of state.lots){if(remain<=0)break;const take=Math.min(remain,lot.qty);writeOffInfo.push(` - Списано ${take} шт. по ${lot.price}.`);total+=take*lot.price;used+=take;lot.qty-=take;remain-=take;}
-          op.avgPrice=used?round(total/used,2):0;
-          lotDetails+=`: ${op.qty} шт.\n${writeOffInfo.join('\n')}\n - Средневзвешенная цена списания: ${op.avgPrice}.`;
-        }
-        recalcTotals();
-        op.remain=state.totalQty; op.avgRemain=state.avgPrice;
-        detailLine+=lotDetails+`\n - Остаток после операции: ${op.remain} шт. по средневзвешенной цене: ${op.avgRemain}.`;
-        state.details.push(detailLine);
-      }
-      renderRows();
-    };
-
-    const onTypeChange=()=>{if(els.price)els.price.style.display=(els.type.value==='Списание ЦБ (Уход)')?'none':'block';};
-
-    const getAvailable=()=>{
-      let available=0;
-      for(const op of state.ops){
-        if(op.type==='Покупка (Приход)')available+=op.qty;
-        else if(op.type==='Продажа (Уход)'||op.type==='Списание ЦБ (Уход)')available-=op.qty;
+    const getAvailable = () => {
+      let available = 0;
+      for (const op of state.ops) {
+        if (op.type === 'Покупка (Приход)') available += op.qty;
+        else available -= op.qty;
       }
       return available;
     };
 
-    const addOperation=()=>{
-      const qty=Number(els.qty&&els.qty.value);
-      const price=Number(els.price&&els.price.value);
-      const type=els.type?els.type.value:'Покупка (Приход)';
-      if(!qty||qty<=0)return setWarn('Введите корректное количество (>0).');
-      if(type!=='Списание ЦБ (Уход)'&&(!price||price<=0))return setWarn('Введите корректную цену (>0).');
+    const compute = () => {
+      state.lots = [];
+      state.details = [];
 
-      const currentAvail=getAvailable();
-      const availAfter=type==='Покупка (Приход)'?(currentAvail+qty):(currentAvail-qty);
-      if(availAfter<0)return setWarn(`Недостаточно бумаг: доступно ${currentAvail} шт., пытаетесь ${type.includes('Списание')?'списать':'продать'} ${qty} шт.`);
-      setWarn('');
+      for (let idx = 0; idx < state.ops.length; idx++) {
+        const op = state.ops[idx];
+        const num = idx + 1;
 
-      state.ops.push({type,qty,price:type==='Списание ЦБ (Уход)'?null:price,avgPrice:0,remain:0,avgRemain:0});
-      compute();
-      if(els.qty)els.qty.value=''; if(els.price)els.price.value='';
-    };
+        let detail = `${num} — Операция: ${op.type}`;
+        let lotDetails = '';
 
-    const onTableClick=e=>{
-      const btn=e.target.closest('.btn-del'); if(!btn)return;
-      const i=Number(btn.dataset.i); if(Number.isNaN(i))return;
-      state.ops.splice(i,1); compute();
-    };
+        if (op.type === 'Покупка (Приход)') {
+          state.lots.push({ qty: op.qty, price: op.price });
+          lotDetails += `: ${op.qty} шт. по цене ${fmt2(op.price)}.`;
 
-    const toggleResults=()=>{
-      if(!els.results)return;
-      if(els.results.style.display==='block')els.results.style.display='none';
-      else{
-        els.results.style.display='block';
-        els.results.textContent=state.details.length?state.details.join('\n\n'):'Нет расчётов';
+        } else if (op.type === 'Продажа (Уход)') {
+          let remain = op.qty;
+          const soldFrom = [];
+
+          while (remain > 0 && state.lots.length) {
+            const lot = state.lots[0];
+            const used = Math.min(remain, lot.qty);
+
+            if (used > 0) {
+              soldFrom.push(` - Продано ${used} шт. по цене ${fmt2(lot.price)}.`);
+              lot.qty -= used;
+              remain -= used;
+            }
+
+            if (lot.qty === 0) state.lots.shift();
+          }
+
+          lotDetails += `: ${op.qty} шт.\n${soldFrom.join('\n')}`;
+
+        } else if (op.type === 'Списание ЦБ (Уход)') {
+          let remain = op.qty;
+          let total = 0;
+          let used = 0;
+          const writeOffInfo = [];
+
+          while (remain > 0 && state.lots.length) {
+            const lot = state.lots[0];
+            const take = Math.min(remain, lot.qty);
+
+            if (take > 0) {
+              writeOffInfo.push(` - Списано ${take} шт. по ${fmt2(lot.price)}.`);
+              total += take * lot.price;
+              used += take;
+              lot.qty -= take;
+              remain -= take;
+            }
+
+            if (lot.qty === 0) state.lots.shift();
+          }
+
+          op.avgWriteOff = used ? round(total / used, 2) : 0;
+
+          lotDetails += `: ${op.qty} шт.\n${writeOffInfo.join('\n')}\n - Средняя цена списания: ${fmt2(op.avgWriteOff)}.`;
+        }
+
+        recalcTotals();
+        op.remain = state.totalQty;
+        op.avgRemain = state.avgPrice;
+
+        detail += lotDetails + `\n - Остаток: ${op.remain} шт., средняя цена остатка: ${fmt2(op.avgRemain)}.`;
+        state.details.push(detail);
+      }
+
+      renderRows();
+
+      if (els.results && els.results.style.display === 'block') {
+        els.results.textContent = state.details.length ? state.details.join('\n\n') : 'Нет расчётов';
       }
     };
 
-    const resetAll=()=>{state.ops.length=0;state.lots.length=0;state.details.length=0;renderRows();setWarn('');els.results.textContent='';};
-
-    const exportPng=async()=>{
-      const node=$('#calcContainer');if(!node)return;
-      const canvas=await html2canvas(node);const a=document.createElement('a');a.download='fifo_result.png';a.href=canvas.toDataURL('image/png');a.click();
+    const onTypeChange = () => {
+      const isWriteOff = els.type.value === 'Списание ЦБ (Уход)';
+      els.priceField.style.display = isWriteOff ? 'none' : 'block';
+      els.price.disabled = isWriteOff;
+      if (isWriteOff) els.price.value = '';
     };
 
-    document.addEventListener('DOMContentLoaded',()=>{
+    const addOperation = () => {
+      const type = els.type.value;
+
+      const qty = parseNum(els.qty.value);
+      const price = parseNum(els.price.value);
+
+      if (!Number.isFinite(qty) || qty <= 0 || !Number.isInteger(qty)) {
+        return setWarn('Введите корректное количество (целое число > 0).');
+      }
+
+      if (type !== 'Списание ЦБ (Уход)') {
+        if (!Number.isFinite(price) || price <= 0) {
+          return setWarn('Введите корректную цену (> 0). Можно с запятой.');
+        }
+      }
+
+      const currentAvail = getAvailable();
+      const availAfter = (type === 'Покупка (Приход)') ? (currentAvail + qty) : (currentAvail - qty);
+
+      if (availAfter < 0) {
+        const verb = type.includes('Списание') ? 'списать' : 'продать';
+        return setWarn(`Недостаточно бумаг: доступно ${currentAvail} шт., пытаетесь ${verb} ${qty} шт.`);
+      }
+
+      setWarn('');
+
+      state.ops.push({
+        type,
+        qty: Math.trunc(qty),
+        price: (type === 'Списание ЦБ (Уход)') ? null : price,
+        avgWriteOff: 0,
+        remain: 0,
+        avgRemain: 0
+      });
+
+      compute();
+
+      els.qty.value = '';
+      els.price.value = '';
+      els.qty.focus();
+    };
+
+    const onTableClick = (e) => {
+      const btn = e.target.closest('.btn-del');
+      if (!btn) return;
+      const i = Number(btn.dataset.i);
+      if (Number.isNaN(i)) return;
+
+      state.ops.splice(i, 1);
+      compute();
+    };
+
+    const toggleResults = () => {
+      if (!els.results) return;
+
+      const isOpen = els.results.style.display === 'block';
+      if (isOpen) {
+        els.results.style.display = 'none';
+        els.toggleResults.textContent = 'Показать расчёты';
+        return;
+      }
+
+      els.results.style.display = 'block';
+      els.results.textContent = state.details.length ? state.details.join('\n\n') : 'Нет расчётов';
+      els.toggleResults.textContent = 'Скрыть расчёты';
+    };
+
+    const resetAll = () => {
+      state.ops.length = 0;
+      state.lots.length = 0;
+      state.details.length = 0;
+      state.totalQty = 0;
+      state.avgPrice = 0;
+
+      setWarn('');
+      if (els.results) {
+        els.results.textContent = '';
+        els.results.style.display = 'none';
+      }
+      if (els.toggleResults) els.toggleResults.textContent = 'Показать расчёты';
+
+      renderRows();
+      els.qty.value = '';
+      els.price.value = '';
+      els.qty.focus();
+    };
+
+    const exportPng = async () => {
+      if (!els.container) return;
+
+      const prev = els.export.textContent;
+      els.export.textContent = 'Готовлю…';
+      els.export.disabled = true;
+      setWarn('');
+
+      try {
+        const canvas = await html2canvas(els.container, {
+          backgroundColor: null,
+          scale: Math.min(2, window.devicePixelRatio || 1)
+        });
+
+        const a = document.createElement('a');
+        a.download = 'fifo_result.png';
+        a.href = canvas.toDataURL('image/png');
+        a.click();
+      } catch (err) {
+        console.error(err);
+        setWarn('Не удалось выгрузить PNG. Попробуйте ещё раз.');
+      } finally {
+        els.export.textContent = prev;
+        els.export.disabled = false;
+      }
+    };
+
+    const onKeyDown = (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        addOperation();
+      }
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
       bindEls();
-      els.type&&els.type.addEventListener('change',onTypeChange);
-      els.add&&els.add.addEventListener('click',addOperation);
-      $('#operationsTable')?.addEventListener('click',onTableClick);
-      els.toggleResults&&els.toggleResults.addEventListener('click',toggleResults);
-      els.reset&&els.reset.addEventListener('click',resetAll);
-      els.export&&els.export.addEventListener('click',exportPng);
+
+      els.type.addEventListener('change', onTypeChange);
+      els.add.addEventListener('click', addOperation);
+      els.table.addEventListener('click', onTableClick);
+      els.toggleResults.addEventListener('click', toggleResults);
+      els.reset.addEventListener('click', resetAll);
+      els.export.addEventListener('click', exportPng);
+
+      // Enter to add
+      els.qty.addEventListener('keydown', onKeyDown);
+      els.price.addEventListener('keydown', onKeyDown);
+      els.type.addEventListener('keydown', onKeyDown);
+
       onTypeChange();
       renderRows();
     });
