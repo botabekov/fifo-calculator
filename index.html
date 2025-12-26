@@ -10,7 +10,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
   <style>
-    /* ✅ чтобы input/select не "выпирали" и не наезжали */
     *, *::before, *::after { box-sizing: border-box; }
 
     :root{
@@ -144,7 +143,6 @@
       background:#fff;
     }
 
-    /* ✅ новая структура формы без общего grid (самый стабильный вариант) */
     #inputBlock{
       margin-top: 12px;
       display:flex;
@@ -311,6 +309,7 @@
         <label for="type">Тип операции</label>
         <select id="type">
           <option value="Покупка (Приход)">Покупка (Приход)</option>
+          <option value="Зачисление ЦБ (Приход)">Зачисление ЦБ (Приход)</option>
           <option value="Продажа (Уход)">Продажа (Уход)</option>
           <option value="Списание ЦБ (Уход)">Списание ЦБ (Уход)</option>
         </select>
@@ -390,6 +389,13 @@
 
     const setWarn = (msg='') => { if (els.warn) els.warn.textContent = msg; };
 
+    // ✅ Приходные типы (ведут себя как покупка)
+    const isIncomeType = (type) =>
+      type === 'Покупка (Приход)' || type === 'Зачисление ЦБ (Приход)';
+
+    const isSaleType = (type) => type === 'Продажа (Уход)';
+    const isWriteOffType = (type) => type === 'Списание ЦБ (Уход)';
+
     const recalcTotals = () => {
       let q = 0, v = 0;
       for (const lot of state.lots) {
@@ -412,11 +418,11 @@
 
       state.ops.forEach((op, i) => {
         const tr = document.createElement('tr');
-        tr.className =
-          op.type.includes('Покупка') ? 'purchase' :
-          op.type.includes('Продажа') ? 'sale' : 'transfer';
 
-        const priceCell = (op.type === 'Списание ЦБ (Уход)') ? '-' : fmt2(op.price);
+        // подсветка: приход как purchase, продажа как sale, списание как transfer
+        tr.className = isIncomeType(op.type) ? 'purchase' : (isSaleType(op.type) ? 'sale' : 'transfer');
+
+        const priceCell = isWriteOffType(op.type) ? '-' : fmt2(op.price);
 
         tr.innerHTML = `
           <td>${i+1}</td>
@@ -430,7 +436,7 @@
         const info = document.createElement('tr');
         const avgRemain = fmt2(op.avgRemain);
 
-        if (op.type === 'Списание ЦБ (Уход)') {
+        if (isWriteOffType(op.type)) {
           info.innerHTML = `
             <td colspan="5" class="info-line">
               📌 Списано: <b>${op.qty}</b> шт. (средняя цена списания: <b>${fmt2(op.avgWriteOff)}</b>)<br>
@@ -454,7 +460,7 @@
     const getAvailable = () => {
       let available = 0;
       for (const op of state.ops) {
-        if (op.type === 'Покупка (Приход)') available += op.qty;
+        if (isIncomeType(op.type)) available += op.qty;
         else available -= op.qty;
       }
       return available;
@@ -471,11 +477,11 @@
         let detail = `${num} — Операция: ${op.type}`;
         let lotDetails = '';
 
-        if (op.type === 'Покупка (Приход)') {
+        if (isIncomeType(op.type)) {
           state.lots.push({ qty: op.qty, price: op.price });
           lotDetails += `: ${op.qty} шт. по цене ${fmt2(op.price)}.`;
 
-        } else if (op.type === 'Продажа (Уход)') {
+        } else if (isSaleType(op.type)) {
           let remain = op.qty;
           const soldFrom = [];
 
@@ -494,7 +500,7 @@
 
           lotDetails += `: ${op.qty} шт.\n${soldFrom.join('\n')}`;
 
-        } else if (op.type === 'Списание ЦБ (Уход)') {
+        } else if (isWriteOffType(op.type)) {
           let remain = op.qty;
           let total = 0;
           let used = 0;
@@ -535,15 +541,16 @@
     };
 
     const onTypeChange = () => {
-      const isWriteOff = els.type.value === 'Списание ЦБ (Уход)';
+      const type = els.type.value;
 
-      els.priceField.style.display = isWriteOff ? 'none' : 'block';
-      els.price.disabled = isWriteOff;
-      if (isWriteOff) els.price.value = '';
+      const hidePrice = isWriteOffType(type);
+      els.priceField.style.display = hidePrice ? 'none' : 'block';
+      els.price.disabled = hidePrice;
+      if (hidePrice) els.price.value = '';
 
-      /* ✅ когда цена скрыта — количество занимает всю строку */
+      // если цена скрыта — количество на всю ширину
       if (els.qtyField) {
-        els.qtyField.style.gridColumn = isWriteOff ? '1 / -1' : '';
+        els.qtyField.style.gridColumn = hidePrice ? '1 / -1' : '';
       }
     };
 
@@ -557,17 +564,17 @@
         return setWarn('Введите корректное количество (целое число > 0).');
       }
 
-      if (type !== 'Списание ЦБ (Уход)') {
+      if (!isWriteOffType(type)) {
         if (!Number.isFinite(price) || price <= 0) {
           return setWarn('Введите корректную цену (> 0). Можно с запятой.');
         }
       }
 
       const currentAvail = getAvailable();
-      const availAfter = (type === 'Покупка (Приход)') ? (currentAvail + qty) : (currentAvail - qty);
+      const availAfter = isIncomeType(type) ? (currentAvail + qty) : (currentAvail - qty);
 
       if (availAfter < 0) {
-        const verb = type.includes('Списание') ? 'списать' : 'продать';
+        const verb = isWriteOffType(type) ? 'списать' : 'продать';
         return setWarn(`Недостаточно бумаг: доступно ${currentAvail} шт., пытаетесь ${verb} ${qty} шт.`);
       }
 
@@ -576,7 +583,7 @@
       state.ops.push({
         type,
         qty: Math.trunc(qty),
-        price: (type === 'Списание ЦБ (Уход)') ? null : price,
+        price: isWriteOffType(type) ? null : price,
         avgWriteOff: 0,
         remain: 0,
         avgRemain: 0
