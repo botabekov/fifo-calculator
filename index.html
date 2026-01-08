@@ -60,94 +60,6 @@
       position: relative;
       overflow: hidden;
     }
-
-    .ny-ribbon{
-      position:absolute;
-      right:-52px;
-      top:14px;
-      background: linear-gradient(135deg, #f97316, #facc15);
-      color:#7c2d12;
-      padding: 8px 70px;
-      text-transform: uppercase;
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: .05em;
-      transform: rotate(45deg);
-      box-shadow: 0 8px 24px rgba(124,45,18,.25);
-      border: 1px solid rgba(124,45,18,.18);
-      user-select:none;
-    }
-
-    .ny-banner{
-      display:flex;
-      align-items:center;
-      gap:12px;
-      background: linear-gradient(135deg, #0ea5e9, #22d3ee 38%, #16a34a);
-      border-radius: var(--r12);
-      padding: 12px 14px;
-      border:1px solid rgba(255,255,255,.6);
-      color:#f8fafc;
-      box-shadow: 0 10px 28px rgba(14,165,233,.24);
-      margin-bottom: 12px;
-    }
-    .ny-icon{
-      font-size: 20px;
-      filter: drop-shadow(0 6px 14px rgba(0,0,0,.15));
-    }
-    .ny-text{ flex:1; line-height: 1.4; }
-    .ny-title{ font-weight: 700; font-size: 15px; letter-spacing: -0.01em; }
-    .ny-subtitle{ font-size: 12.5px; opacity:.92; }
-    .ny-year{
-      background: rgba(255,255,255,.16);
-      border: 1px solid rgba(255,255,255,.35);
-      color:#0f172a;
-      padding: 10px 12px;
-      border-radius: 12px;
-      font-weight: 700;
-      min-width: 74px;
-      text-align:center;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.6);
-      background-image: linear-gradient(135deg, rgba(255,255,255,.4), rgba(255,255,255,.12));
-    }
-
-    .flower-row{
-      display:flex;
-      justify-content:center;
-      gap:6px;
-      font-size: 18px;
-      margin: 6px 0 10px;
-      user-select:none;
-    }
-
-    .ny-garland{
-      list-style:none;
-      margin: -2px 0 14px;
-      padding:0;
-      display:flex;
-      justify-content:center;
-      gap:10px;
-    }
-    .ny-garland li{
-      width:14px;
-      height:14px;
-      border-radius: 999px;
-      box-shadow: 0 8px 14px rgba(0,0,0,.15);
-      animation: twinkle 2s ease-in-out infinite;
-    }
-    .ny-garland li:nth-child(1){ background:#f97316; animation-delay:-.2s; }
-    .ny-garland li:nth-child(2){ background:#22c55e; animation-delay:.1s; }
-    .ny-garland li:nth-child(3){ background:#38bdf8; animation-delay:-.4s; }
-    .ny-garland li:nth-child(4){ background:#fbbf24; animation-delay:.3s; }
-    .ny-garland li:nth-child(5){ background:#ef4444; animation-delay:-.1s; }
-    .ny-garland li:nth-child(6){ background:#a855f7; animation-delay:.5s; }
-    .ny-garland li:nth-child(7){ background:#10b981; animation-delay:-.3s; }
-
-    /* ✅ ВОТ ТУТ БЫЛА ОШИБКА: не хватало закрывающей скобки } */
-    @keyframes twinkle{
-      0%,100%{ opacity:.75; transform: translateY(0); }
-      50%{ opacity: 1; transform: translateY(2px); }
-    }
-
     h2{
       margin: 4px 0 6px;
       font-size: 22px;
@@ -373,27 +285,10 @@
 
 <body>
   <div class="container" id="calcContainer">
-    <div class="ny-ribbon" aria-hidden="true"></div>
-
     <h2>Калькулятор FIFO</h2>
     <div class="subtitle">Лёгкий, понятный, без лишнего — работает прямо в браузере</div>
     <div class="flower-row" aria-hidden="true">🌸 🌼 🌺 🌷 🌻</div>
 
-    <!-- Новогодний баннер отключён. Чтобы включить, раскомментируйте блок ниже. -->
-    <!--
-    <div class="ny-banner" role="note" aria-label="Новогоднее оформление">
-      <div class="ny-icon" aria-hidden="true">🎄</div>
-      <div class="ny-text">
-        <div class="ny-title">С Новым годом! ✨</div>
-        <div class="ny-subtitle"> </div>
-      </div>
-      <div class="ny-year">2026</div>
-    </div>
-    -->
-
-    <ul class="ny-garland" aria-hidden="true">
-      <li></li><li></li><li></li><li></li><li></li><li></li><li></li>
-    </ul>
 
     <div class="instruction">Добавляйте операции в хронологическом порядке — от первой к последующей.</div>
 
@@ -747,6 +642,11 @@
 
     const exportPng = async () => {
       if (!els.container) return;
+
+      if (typeof html2canvas !== 'function') {
+        setWarn('Экспорт недоступен: библиотека html2canvas не загружена.');
+        return;
+      }
 
       const prev = els.export.textContent;
       els.export.textContent = 'Готовлю…';
