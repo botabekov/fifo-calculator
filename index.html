@@ -642,6 +642,11 @@
     const exportPng = async () => {
       if (!els.container) return;
 
+      if (typeof html2canvas !== 'function') {
+        setWarn('Экспорт недоступен: библиотека html2canvas не загружена.');
+        return;
+      }
+
       const prev = els.export.textContent;
       els.export.textContent = 'Готовлю…';
       els.export.disabled = true;
