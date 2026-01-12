@@ -22,9 +22,6 @@
       --primary:#2563eb;
       --primary2:#1d4ed8;
 
-      --info1:#0ea5e9;
-      --info2:#0284c7;
-
       --success1:#10b981;
       --success2:#059669;
 
@@ -38,30 +35,41 @@
       --r16:16px;
     }
 
-    html,body{height:100%}
-    body{
+    /* ===== FULLSCREEN LAYOUT ===== */
+    html, body{
+      height:100%;
       margin:0;
+    }
+    body{
       font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
       color:var(--ink);
       background:
         radial-gradient(1200px 600px at 10% -10%, rgba(37,99,235,.10), transparent 60%),
         radial-gradient(900px 600px at 100% 0%, rgba(16,185,129,.10), transparent 55%),
         var(--bg);
+      overflow:hidden; /* скролл будет внутри контейнера */
     }
 
     .container{
-      max-width: 980px;
-      margin: 28px auto;
-      padding: 22px;
+      width:100vw;
+      height:100vh;
+      max-width:none;
+      margin:0;
+      padding: 18px;
       background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: var(--r16);
-      box-shadow: var(--shadow);
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
       position: relative;
       overflow: hidden;
+
+      display:flex;
+      flex-direction: column;
+      gap: 10px;
     }
+
     h2{
-      margin: 4px 0 6px;
+      margin: 4px 0 2px;
       font-size: 22px;
       letter-spacing: -0.02em;
       text-align:center;
@@ -71,7 +79,14 @@
       text-align:center;
       color:var(--muted);
       font-size: 13px;
-      margin-bottom: 14px;
+      margin: 0 0 2px;
+    }
+
+    .flower-row{
+      text-align:center;
+      margin: 0 0 4px;
+      opacity: .9;
+      font-size: 16px;
     }
 
     .instruction{
@@ -82,10 +97,11 @@
       border:1px solid #fed7aa;
       color:#7c2d12;
       border-radius: var(--r12);
-      padding: 12px 12px;
+      padding: 10px 12px;
       font-size: 13px;
-      line-height: 1.4;
-      margin-bottom: 14px;
+      line-height: 1.35;
+      margin: 0;
+      flex: 0 0 auto;
     }
     .instruction:before{
       content:"💡";
@@ -94,17 +110,24 @@
       margin-top: 1px;
     }
 
+    /* Таблица должна занимать всё доступное место и скроллиться */
+    .tableWrap{
+      flex: 1 1 auto;
+      overflow:auto;
+      border-radius: var(--r12);
+      box-shadow: var(--shadow2);
+      border:1px solid var(--line);
+      margin: 0;
+      min-height: 180px;
+    }
+
     table{
       width:100%;
       border-collapse:separate;
       border-spacing:0;
       font-size: 13px;
-      margin-bottom: 12px;
       table-layout:fixed;
-      overflow:hidden;
-      border:1px solid var(--line);
-      border-radius: var(--r12);
-      box-shadow: var(--shadow2);
+      min-width: 980px; /* чтобы расчётные колонки не ломали */
     }
 
     th,td{
@@ -113,42 +136,32 @@
       text-align:center;
       word-wrap:break-word;
       background:#fff;
+      white-space: nowrap;
     }
 
     thead th{
       background:#f8fafc;
       color:#334155;
       font-weight:600;
+      position: sticky;
+      top: 0;
+      z-index: 2;
     }
 
-    tbody tr:hover td{
-      background:#f8fafc;
-    }
-
-    th:first-child, td:first-child{width:56px}
-    th:last-child, td:last-child{width:72px}
-
+    tbody tr:hover td{ background:#f8fafc; }
     .muted{color:var(--muted);font-size:12px}
 
     .purchase td{ background: rgba(37,99,235,.06); }
     .sale td{ background: rgba(16,185,129,.08); }
     .transfer td{ background: rgba(245,158,11,.10); }
 
-    .info-line{
-      text-align:left;
-      font-size: 12.5px;
-      color:#0f172a;
-      padding-left: 12px;
-      font-style: normal;
-      opacity:.9;
-      background:#fff;
-    }
-
+    /* Блок ввода и кнопки внизу */
     #inputBlock{
-      margin-top: 12px;
+      flex: 0 0 auto;
       display:flex;
       flex-direction:column;
       gap:10px;
+      margin: 0;
     }
 
     .formRow2{
@@ -158,8 +171,14 @@
       align-items:end;
     }
 
+    .formRow2.compact{
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+
     @media (max-width: 560px){
       .formRow2{ grid-template-columns: 1fr; }
+      .formRow2.compact{ grid-template-columns: 1fr; }
+      table{ min-width: 860px; }
     }
 
     .field{ min-width:0; }
@@ -188,6 +207,37 @@
       box-shadow: 0 0 0 4px rgba(37,99,235,.12);
     }
 
+    .checkRow{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      border:1px solid var(--line);
+      border-radius: 12px;
+      background:#fff;
+    }
+    .checkRow .left{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      color:#0f172a;
+      font-size: 13px;
+      text-align:left;
+    }
+    .checkRow input[type="checkbox"]{
+      width: 18px;
+      height: 18px;
+      margin:0;
+      accent-color: var(--primary);
+    }
+    .checkRow .hint{
+      color: var(--muted);
+      font-size: 12px;
+      text-align:right;
+      white-space: normal;
+    }
+
     #warn{
       margin-top: 2px;
       min-height: 18px;
@@ -211,17 +261,11 @@
       width:100%;
     }
 
-    #toggleResultsBtn{
-      background: linear-gradient(180deg, var(--info1), var(--info2));
-      color:#fff;
-      width:100%;
-      margin-top: 10px;
-    }
-
     .actions{
       display:flex;
       gap:10px;
-      margin-top: 10px;
+      margin-top: 6px;
+      flex: 0 0 auto;
     }
     .actions .btn{flex:1}
 
@@ -252,25 +296,12 @@
     .btn-del:hover{ background: rgba(239,68,68,.14); }
     .btn-del:active{ transform: translateY(1px); }
 
-    #resultsBox{
-      display:none;
-      background:#0b1220;
-      color:#e5e7eb;
-      border:1px solid rgba(148,163,184,.25);
-      border-radius: var(--r12);
-      padding: 12px 12px;
-      margin-top: 12px;
-      font-size: 13px;
-      white-space: pre-line;
-      line-height: 1.6;
-      box-shadow: var(--shadow2);
-    }
-
     .tip{
-      margin-top: 10px;
+      margin-top: 4px;
       color: var(--muted);
       font-size: 12px;
       text-align: center;
+      flex: 0 0 auto;
     }
 
     .sr-only{
@@ -285,27 +316,39 @@
 
 <body>
   <div class="container" id="calcContainer">
-    <h2>Калькулятор FIFO</h2>
-    <div class="subtitle">Лёгкий, понятный, без лишнего — работает прямо в браузере</div>
-    <div class="flower-row" aria-hidden="true">🌸 🌼 🌺 🌷 🌻</div>
+    <div>
+      <h2>Калькулятор FIFO</h2>
+      <div class="subtitle">Лёгкий, понятный, без лишнего — работает прямо в браузере</div>
+      <div class="flower-row" aria-hidden="true">🌸 🌼 🌺 🌷 🌻</div>
+      <div class="instruction">Добавляйте операции в хронологическом порядке — от первой к последующей.</div>
+    </div>
 
+    <div class="tableWrap">
+      <table id="operationsTable" aria-label="Список операций">
+        <thead>
+          <tr>
+            <th style="width:56px">№</th>
+            <th style="width:220px">Тип</th>
+            <th style="width:90px">Кол-во</th>
+            <th style="width:90px">Цена</th>
+            <th style="width:110px">Комиссия</th>
 
-    <div class="instruction">Добавляйте операции в хронологическом порядке — от первой к последующей.</div>
+            <th style="width:140px">Себестоимость</th>
+            <th style="width:140px">Сумма при продаже</th>
+            <th style="width:140px">Прибыль / Убыток</th>
 
-    <table id="operationsTable" aria-label="Список операций">
-      <thead>
-        <tr>
-          <th>№</th>
-          <th>Тип</th>
-          <th>Кол-во</th>
-          <th>Цена</th>
-          <th><span class="sr-only">Действия</span></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr><td colspan="5" class="muted">Нет операций</td></tr>
-      </tbody>
-    </table>
+            <th style="width:110px">Остаток (шт)</th>
+            <th style="width:170px">Балансовая стоимость остатка</th>
+            <th style="width:160px">Сред. стоимость остатка</th>
+
+            <th style="width:72px"><span class="sr-only">Действия</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="12" class="muted">Нет операций</td></tr>
+        </tbody>
+      </table>
+    </div>
 
     <div id="inputBlock">
       <div class="field" id="typeField">
@@ -330,19 +373,35 @@
         </div>
       </div>
 
+      <!-- Комиссия + галочка (только для Покупки) -->
+      <div class="formRow2 compact" id="purchaseExtraRow" style="display:none;">
+        <div class="field" id="commissionField">
+          <label for="commission">Комиссии по сделке</label>
+          <input type="text" id="commission" placeholder="например 100 или 100,15" inputmode="decimal" />
+        </div>
+
+        <div class="field" id="includeCommField">
+          <label>&nbsp;</label>
+          <div class="checkRow">
+            <div class="left">
+              <input type="checkbox" id="includeCommission" />
+              <span>Учитывать комиссию в себестоимости покупки</span>
+            </div>
+            <div class="hint">Если включено — комиссия распределяется на 1 шт.</div>
+          </div>
+        </div>
+      </div>
+
       <button class="btn" id="addBtn">Добавить операцию</button>
       <div id="warn" class="muted" aria-live="polite"></div>
+
+      <div class="actions">
+        <button class="btn" id="resetBtn">Очистить всё</button>
+        <button class="btn" id="exportBtn">Выгрузить PNG</button>
+      </div>
+
+      <div class="tip">Подсказка: Enter в полях добавляет операцию.</div>
     </div>
-
-    <button class="btn" id="toggleResultsBtn">Показать расчёты</button>
-    <div id="resultsBox"></div>
-
-    <div class="actions">
-      <button class="btn" id="resetBtn">Очистить всё</button>
-      <button class="btn" id="exportBtn">Выгрузить PNG</button>
-    </div>
-
-    <div class="tip">Подсказка: Enter в полях добавляет операцию.</div>
   </div>
 
   <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
@@ -362,7 +421,7 @@
       return Number.isFinite(n) ? n : NaN;
     };
 
-    const fmt2 = (n) => Number.isFinite(n) ? round(n,2).toFixed(2) : "-";
+    const fmt2 = (n) => Number.isFinite(n) ? round(n,2).toFixed(2) : "";
 
     const els = {};
     const bindEls = () => {
@@ -370,24 +429,26 @@
       els.type = $('#type');
       els.qty = $('#qty');
       els.price = $('#price');
+
+      els.purchaseExtraRow = $('#purchaseExtraRow');
+      els.commission = $('#commission');
+      els.includeCommission = $('#includeCommission');
+
       els.priceField = $('#priceField');
       els.qtyField = $('#qtyField');
+
       els.add = $('#addBtn');
       els.warn = $('#warn');
-      els.toggleResults = $('#toggleResultsBtn');
-      els.results = $('#resultsBox');
       els.reset = $('#resetBtn');
       els.export = $('#exportBtn');
+
       els.container = $('#calcContainer');
       els.table = $('#operationsTable');
     };
 
     const state = {
       ops: [],
-      lots: [],
-      details: [],
-      totalQty: 0,
-      avgPrice: 0
+      lots: [] // {qty, price} where price = effective unit cost (with/without commission)
     };
 
     const setWarn = (msg='') => { if (els.warn) els.warn.textContent = msg; };
@@ -397,7 +458,7 @@
     const isSaleType = (type) => type === 'Продажа (Уход)';
     const isWriteOffType = (type) => type === 'Списание ЦБ (Уход)';
 
-    const recalcTotals = () => {
+    const calcRemainSnapshot = () => {
       let q = 0, v = 0;
       for (const lot of state.lots) {
         if (lot.qty > 0) {
@@ -405,53 +466,56 @@
           v += lot.qty * lot.price;
         }
       }
-      state.totalQty = q;
-      state.avgPrice = q ? round(v / q, 2) : 0;
+      return {
+        qty: q,
+        value: round(v, 2),
+        avg: q ? round(v / q, 2) : 0
+      };
     };
 
     const renderRows = () => {
       if (!els.tableBody) return;
 
       const body = els.tableBody;
-      body.innerHTML = state.ops.length ? '' : '<tr><td colspan="5" class="muted">Нет операций</td></tr>';
+      body.innerHTML = state.ops.length ? '' : '<tr><td colspan="12" class="muted">Нет операций</td></tr>';
+
+      if (!state.ops.length) return;
 
       const frag = document.createDocumentFragment();
 
       state.ops.forEach((op, i) => {
         const tr = document.createElement('tr');
-
         tr.className = isIncomeType(op.type) ? 'purchase' : (isSaleType(op.type) ? 'sale' : 'transfer');
 
         const priceCell = isWriteOffType(op.type) ? '-' : fmt2(op.price);
+        const commCell = (op.type === 'Покупка (Приход)') ? fmt2(op.commission || 0) : '-';
+
+        const costCell = Number.isFinite(op.cost) ? fmt2(op.cost) : '';
+        const revenueCell = Number.isFinite(op.revenue) ? fmt2(op.revenue) : '';
+        const pnlCell = Number.isFinite(op.pnl) ? fmt2(op.pnl) : '';
+
+        const remainCell = Number.isFinite(op.remain) ? String(op.remain) : '';
+        const balCell = Number.isFinite(op.balanceCost) ? fmt2(op.balanceCost) : '';
+        const avgCell = Number.isFinite(op.avgRemain) ? fmt2(op.avgRemain) : '';
 
         tr.innerHTML = `
           <td>${i+1}</td>
           <td>${op.type}</td>
           <td>${op.qty}</td>
           <td>${priceCell}</td>
+          <td>${commCell}</td>
+
+          <td>${costCell}</td>
+          <td>${revenueCell}</td>
+          <td>${pnlCell}</td>
+
+          <td>${remainCell}</td>
+          <td>${balCell}</td>
+          <td>${avgCell}</td>
+
           <td><button class="btn-del" data-i="${i}" title="Удалить">×</button></td>
         `;
         frag.appendChild(tr);
-
-        const info = document.createElement('tr');
-        const avgRemain = fmt2(op.avgRemain);
-
-        if (isWriteOffType(op.type)) {
-          info.innerHTML = `
-            <td colspan="5" class="info-line">
-              📌 Списано: <b>${op.qty}</b> шт. (средняя цена списания: <b>${fmt2(op.avgWriteOff)}</b>)<br>
-              📊 Остаток: <b>${op.remain}</b> шт. (средняя цена остатка: <b>${avgRemain}</b>)
-            </td>
-          `;
-        } else {
-          info.innerHTML = `
-            <td colspan="5" class="info-line">
-              📊 Остаток: <b>${op.remain}</b> шт. (средняя цена остатка: <b>${avgRemain}</b>)
-            </td>
-          `;
-        }
-
-        frag.appendChild(info);
       });
 
       body.appendChild(frag);
@@ -461,95 +525,105 @@
       let available = 0;
       for (const op of state.ops) {
         if (isIncomeType(op.type)) available += op.qty;
-        else available -= op.qty;
+        else available -= op.qty; // продажа/списание храним как qty > 0
       }
       return available;
     };
 
     const compute = () => {
       state.lots = [];
-      state.details = [];
 
       for (let idx = 0; idx < state.ops.length; idx++) {
         const op = state.ops[idx];
-        const num = idx + 1;
 
-        let detail = `${num} — Операция: ${op.type}`;
-        let lotDetails = '';
+        // сброс
+        op.cost = NaN;
+        op.revenue = NaN;
+        op.pnl = NaN;
+        op.remain = NaN;
+        op.balanceCost = NaN;
+        op.avgRemain = NaN;
 
         if (isIncomeType(op.type)) {
-          state.lots.push({ qty: op.qty, price: op.price });
-          lotDetails += `: ${op.qty} шт. по цене ${fmt2(op.price)}.`;
+          // effective unit cost
+          let lotPrice = op.price;
+
+          // комиссия учитывается только для "Покупка" и только если галочка включена
+          if (op.type === 'Покупка (Приход)' && op.includeCommission) {
+            const c = Number.isFinite(op.commission) ? op.commission : 0;
+            lotPrice = (op.qty * op.price + c) / op.qty;
+          }
+
+          state.lots.push({ qty: op.qty, price: lotPrice });
+
+          // себестоимость прихода (по факту)
+          op.cost = round(op.qty * lotPrice, 2);
 
         } else if (isSaleType(op.type)) {
-          let remain = op.qty;
-          const soldFrom = [];
+          // продажа: FIFO cost
+          let need = op.qty;
+          let fifoCost = 0;
 
-          while (remain > 0 && state.lots.length) {
+          while (need > 0 && state.lots.length) {
             const lot = state.lots[0];
-            const used = Math.min(remain, lot.qty);
+            const used = Math.min(need, lot.qty);
 
             if (used > 0) {
-              soldFrom.push(` - Продано ${used} шт. по цене ${fmt2(lot.price)}.`);
+              fifoCost += used * lot.price;
               lot.qty -= used;
-              remain -= used;
+              need -= used;
             }
-
             if (lot.qty === 0) state.lots.shift();
           }
 
-          lotDetails += `: ${op.qty} шт.\n${soldFrom.join('\n')}`;
+          op.cost = round(fifoCost, 2);
+          op.revenue = round(op.qty * op.price, 2);
+          op.pnl = round(op.revenue - op.cost, 2);
 
         } else if (isWriteOffType(op.type)) {
-          let remain = op.qty;
-          let total = 0;
-          let used = 0;
-          const writeOffInfo = [];
+          // списание: FIFO cost, без выручки/приб.
+          let need = op.qty;
+          let fifoCost = 0;
 
-          while (remain > 0 && state.lots.length) {
+          while (need > 0 && state.lots.length) {
             const lot = state.lots[0];
-            const take = Math.min(remain, lot.qty);
+            const used = Math.min(need, lot.qty);
 
-            if (take > 0) {
-              writeOffInfo.push(` - Списано ${take} шт. по ${fmt2(lot.price)}.`);
-              total += take * lot.price;
-              used += take;
-              lot.qty -= take;
-              remain -= take;
+            if (used > 0) {
+              fifoCost += used * lot.price;
+              lot.qty -= used;
+              need -= used;
             }
-
             if (lot.qty === 0) state.lots.shift();
           }
 
-          op.avgWriteOff = used ? round(total / used, 2) : 0;
-          lotDetails += `: ${op.qty} шт.\n${writeOffInfo.join('\n')}\n - Средняя цена списания: ${fmt2(op.avgWriteOff)}.`;
+          op.cost = round(fifoCost, 2);
         }
 
-        recalcTotals();
-        op.remain = state.totalQty;
-        op.avgRemain = state.avgPrice;
-
-        detail += lotDetails + `\n - Остаток: ${op.remain} шт., средняя цена остатка: ${fmt2(op.avgRemain)}.`;
-        state.details.push(detail);
+        const snap = calcRemainSnapshot();
+        op.remain = snap.qty;
+        op.balanceCost = snap.value;
+        op.avgRemain = snap.avg;
       }
 
       renderRows();
-
-      if (els.results && els.results.style.display === 'block') {
-        els.results.textContent = state.details.length ? state.details.join('\n\n') : 'Нет расчётов';
-      }
     };
 
     const onTypeChange = () => {
       const type = els.type.value;
 
+      // Цена скрывается только для "Списание"
       const hidePrice = isWriteOffType(type);
       els.priceField.style.display = hidePrice ? 'none' : 'block';
       els.price.disabled = hidePrice;
       if (hidePrice) els.price.value = '';
 
-      if (els.qtyField) {
-        els.qtyField.style.gridColumn = hidePrice ? '1 / -1' : '';
+      // Комиссия + галочка показываются только для "Покупка (Приход)"
+      const showPurchaseExtra = (type === 'Покупка (Приход)');
+      els.purchaseExtraRow.style.display = showPurchaseExtra ? 'grid' : 'none';
+      if (!showPurchaseExtra) {
+        els.commission.value = '';
+        els.includeCommission.checked = false;
       }
     };
 
@@ -558,6 +632,10 @@
 
       const qty = parseNum(els.qty.value);
       const price = parseNum(els.price.value);
+
+      // комиссия только для покупки
+      const commission = parseNum(els.commission.value);
+      const includeCommission = !!els.includeCommission.checked;
 
       if (!Number.isFinite(qty) || qty <= 0 || !Number.isInteger(qty)) {
         return setWarn('Введите корректное количество (целое число > 0).');
@@ -569,9 +647,16 @@
         }
       }
 
+      if (type === 'Покупка (Приход)') {
+        // если комиссия пустая — считаем 0
+        if (els.commission.value.trim() !== '' && (!Number.isFinite(commission) || commission < 0)) {
+          return setWarn('Комиссия должна быть числом (>= 0). Можно с запятой.');
+        }
+      }
+
+      // контроль доступности
       const currentAvail = getAvailable();
       const availAfter = isIncomeType(type) ? (currentAvail + qty) : (currentAvail - qty);
-
       if (availAfter < 0) {
         const verb = isWriteOffType(type) ? 'списать' : 'продать';
         return setWarn(`Недостаточно бумаг: доступно ${currentAvail} шт., пытаетесь ${verb} ${qty} шт.`);
@@ -582,16 +667,25 @@
       state.ops.push({
         type,
         qty: Math.trunc(qty),
-        price: isWriteOffType(type) ? null : price,
-        avgWriteOff: 0,
-        remain: 0,
-        avgRemain: 0
+        price: isWriteOffType(type) ? NaN : price,
+
+        commission: (type === 'Покупка (Приход)') ? (Number.isFinite(commission) ? commission : 0) : NaN,
+        includeCommission: (type === 'Покупка (Приход)') ? includeCommission : false,
+
+        cost: NaN,
+        revenue: NaN,
+        pnl: NaN,
+        remain: NaN,
+        balanceCost: NaN,
+        avgRemain: NaN
       });
 
       compute();
 
+      // очистка полей
       els.qty.value = '';
       els.price.value = '';
+      els.commission.value = '';
       els.qty.focus();
     };
 
@@ -605,38 +699,18 @@
       compute();
     };
 
-    const toggleResults = () => {
-      if (!els.results) return;
-
-      const isOpen = els.results.style.display === 'block';
-      if (isOpen) {
-        els.results.style.display = 'none';
-        els.toggleResults.textContent = 'Показать расчёты';
-        return;
-      }
-
-      els.results.style.display = 'block';
-      els.results.textContent = state.details.length ? state.details.join('\n\n') : 'Нет расчётов';
-      els.toggleResults.textContent = 'Скрыть расчёты';
-    };
-
     const resetAll = () => {
       state.ops.length = 0;
       state.lots.length = 0;
-      state.details.length = 0;
-      state.totalQty = 0;
-      state.avgPrice = 0;
 
       setWarn('');
-      if (els.results) {
-        els.results.textContent = '';
-        els.results.style.display = 'none';
-      }
-      if (els.toggleResults) els.toggleResults.textContent = 'Показать расчёты';
-
       renderRows();
+
       els.qty.value = '';
       els.price.value = '';
+      els.commission.value = '';
+      els.includeCommission.checked = false;
+
       els.qty.focus();
     };
 
@@ -685,12 +759,12 @@
       els.type.addEventListener('change', onTypeChange);
       els.add.addEventListener('click', addOperation);
       els.table.addEventListener('click', onTableClick);
-      els.toggleResults.addEventListener('click', toggleResults);
       els.reset.addEventListener('click', resetAll);
       els.export.addEventListener('click', exportPng);
 
       els.qty.addEventListener('keydown', onKeyDown);
       els.price.addEventListener('keydown', onKeyDown);
+      els.commission.addEventListener('keydown', onKeyDown);
       els.type.addEventListener('keydown', onKeyDown);
 
       onTypeChange();
