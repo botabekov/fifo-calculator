@@ -51,7 +51,6 @@
       padding: 18px;
       background: var(--card);
       overflow: hidden;
-
       display:flex;
       flex-direction: column;
       gap: 10px;
@@ -383,9 +382,8 @@
   (function(){
     const $ = (sel, root=document) => root.querySelector(sel);
 
-    // ===== Precision / format =====
-    const DEC_DISPLAY = 6;          // вывод в таблице
-    const DEC_INPUT_QTY_MAX = 16;   // ввод количества
+    const DEC_DISPLAY = 6;
+    const DEC_INPUT_QTY_MAX = 16;
     const EPS = 1e-12;
 
     const round = (n, d=2) => {
@@ -394,10 +392,7 @@
     };
 
     const parseNum = (v) => {
-      const s = String(v ?? "")
-        .trim()
-        .replace(/\s+/g, "")
-        .replace(",", ".");
+      const s = String(v ?? "").trim().replace(/\s+/g, "").replace(",", ".");
       const n = Number(s);
       return Number.isFinite(n) ? n : NaN;
     };
@@ -416,12 +411,7 @@
       minimumFractionDigits: DEC_DISPLAY,
       maximumFractionDigits: DEC_DISPLAY
     });
-
-    const fmt6 = (n) => {
-      if (!Number.isFinite(n)) return "";
-      const r = round(n, DEC_DISPLAY);
-      return nf6.format(r).replace(/\u00A0/g, " ");
-    };
+    const fmt6 = (n) => Number.isFinite(n) ? nf6.format(round(n, DEC_DISPLAY)).replace(/\u00A0/g," ") : "";
 
     const els = {};
     const bindEls = () => {
@@ -444,9 +434,12 @@
       els.table = $('#operationsTable');
     };
 
-    const state = { ops: [], lots: [] };
+    const state = {
+      ops: [],
+      lots: [] // {qty, price} price = unit cost
+    };
 
-    const setWarn = (msg='') => { if (els.warn) els.warn.textContent = msg; };
+    const setWarn = (msg='') => { els.warn.textContent = msg; };
 
     const isIncomeType = (type) =>
       type === 'Покупка (Приход)' || type === 'Зачисление ЦБ (Приход)';
@@ -479,8 +472,13 @@
         const tr = document.createElement('tr');
         tr.className = isIncomeType(op.type) ? 'purchase' : (isSaleType(op.type) ? 'sale' : 'transfer');
 
-        const qtyCell = Number.isFinite(op.qty) ? fmt6(op.qty) : '';
-        const priceCell = isWriteOffType(op.type) ? '-' : fmt6(op.price);
+        // ✅ Цена: для списания показываем FIFO unit cost (writeOffUnitPrice)
+        const priceCell = isWriteOffType(op.type)
+          ? (Number.isFinite(op.writeOffUnitPrice) ? fmt6(op.writeOffUnitPrice) : '-')
+          : fmt6(op.price);
+
+        const qtyCell = fmt6(op.qty);
+
         const commCell = (op.type === 'Покупка (Приход)') ? fmt6(op.commission || 0) : '-';
 
         const costCell = Number.isFinite(op.cost) ? fmt6(op.cost) : '';
@@ -523,14 +521,40 @@
       return available;
     };
 
+    // FIFO consume helper that also returns weighted unit cost for the consumed part
+    const fifoConsume = (needQty) => {
+      let need = needQty;
+      let cost = 0;
+
+      while (need > EPS && state.lots.length) {
+        const lot = state.lots[0];
+        const used = Math.min(need, lot.qty);
+
+        if (used > EPS) {
+          cost += used * lot.price;
+          lot.qty -= used;
+          need -= used;
+        }
+        if (lot.qty <= EPS) state.lots.shift();
+      }
+
+      const unit = needQty > EPS ? (cost / needQty) : 0;
+      return { cost: round(cost, DEC_DISPLAY), unit: round(unit, DEC_DISPLAY) };
+    };
+
     const compute = () => {
       state.lots = [];
 
       for (let idx = 0; idx < state.ops.length; idx++) {
         const op = state.ops[idx];
 
-        op.cost = NaN; op.revenue = NaN; op.pnl = NaN;
-        op.remain = NaN; op.balanceCost = NaN; op.avgRemain = NaN;
+        op.cost = NaN;
+        op.revenue = NaN;
+        op.pnl = NaN;
+        op.remain = NaN;
+        op.balanceCost = NaN;
+        op.avgRemain = NaN;
+        op.writeOffUnitPrice = NaN;
 
         if (isIncomeType(op.type)) {
           let lotPrice = op.price;
@@ -544,42 +568,17 @@
           op.cost = round(op.qty * lotPrice, DEC_DISPLAY);
 
         } else if (isSaleType(op.type)) {
-          let need = op.qty;
-          let fifoCost = 0;
+          const fifo = fifoConsume(op.qty);
 
-          while (need > EPS && state.lots.length) {
-            const lot = state.lots[0];
-            const used = Math.min(need, lot.qty);
-
-            if (used > EPS) {
-              fifoCost += used * lot.price;
-              lot.qty -= used;
-              need -= used;
-            }
-            if (lot.qty <= EPS) state.lots.shift();
-          }
-
-          op.cost = round(fifoCost, DEC_DISPLAY);
+          op.cost = fifo.cost;
           op.revenue = round(op.qty * op.price, DEC_DISPLAY);
           op.pnl = round(op.revenue - op.cost, DEC_DISPLAY);
 
         } else if (isWriteOffType(op.type)) {
-          let need = op.qty;
-          let fifoCost = 0;
-
-          while (need > EPS && state.lots.length) {
-            const lot = state.lots[0];
-            const used = Math.min(need, lot.qty);
-
-            if (used > EPS) {
-              fifoCost += used * lot.price;
-              lot.qty -= used;
-              need -= used;
-            }
-            if (lot.qty <= EPS) state.lots.shift();
-          }
-
-          op.cost = round(fifoCost, DEC_DISPLAY);
+          // ✅ списание: FIFO cost + запоминаем unit price (по какой цене ушло)
+          const fifo = fifoConsume(op.qty);
+          op.cost = fifo.cost;
+          op.writeOffUnitPrice = fifo.unit;
         }
 
         const snap = calcRemainSnapshot();
@@ -627,7 +626,7 @@
 
       if (!isWriteOffType(type)) {
         if (!Number.isFinite(price) || price <= 0) {
-          return setWarn('Введите корректную цену (> 0). Можно с запятой и пробелами-разделителями.');
+          return setWarn('Введите корректную цену (> 0). Можно с запятой и пробелами.');
         }
       }
 
@@ -650,12 +649,12 @@
         type,
         qty: qty,
         price: isWriteOffType(type) ? NaN : price,
-
         commission: (type === 'Покупка (Приход)') ? (Number.isFinite(commission) ? commission : 0) : NaN,
         includeCommission: (type === 'Покупка (Приход)') ? includeCommission : false,
 
         cost: NaN, revenue: NaN, pnl: NaN,
-        remain: NaN, balanceCost: NaN, avgRemain: NaN
+        remain: NaN, balanceCost: NaN, avgRemain: NaN,
+        writeOffUnitPrice: NaN
       });
 
       compute();
@@ -689,7 +688,7 @@
       els.qty.focus();
     };
 
-    // ===== PDF export: Excel-style + FIT-TO-PAGE (always fits A4 landscape) =====
+    // ===== PDF export: Excel-style + fit-to-page A4 landscape =====
     const exportPdf = async () => {
       if (typeof html2canvas !== 'function') {
         setWarn('Экспорт недоступен: html2canvas не загружен.');
@@ -711,7 +710,6 @@
       els.export.disabled = true;
       setWarn('');
 
-      // 1) Build Excel-like temp layout
       const temp = document.createElement('div');
       temp.style.position = 'fixed';
       temp.style.left = '-10000px';
@@ -721,7 +719,6 @@
       temp.style.fontFamily = 'Arial, sans-serif';
       temp.style.color = '#000';
 
-      // wrapper that we will SCALE to fit
       const wrapper = document.createElement('div');
       wrapper.style.transformOrigin = 'top left';
 
@@ -737,7 +734,6 @@
       // remove last column (actions)
       const ths = clone.querySelectorAll('thead th');
       if (ths.length) ths[ths.length - 1].remove();
-
       clone.querySelectorAll('tbody tr').forEach(tr => {
         const tds = tr.querySelectorAll('td');
         if (tds.length) tds[tds.length - 1].remove();
@@ -779,21 +775,12 @@
       document.body.appendChild(temp);
 
       try {
-        // 2) Compute scale to fit A4 landscape width (safe pixels)
-        // We’ll aim for a “virtual” page width in pixels for html2canvas capture.
-        // Pick a reasonable target width so quality is good.
-        const TARGET_PX_WIDTH = 1600; // virtual target page width for the layout
-        // Make wrapper natural size first
         wrapper.style.transform = 'scale(1)';
-
-        // Measure natural width
-        const naturalWidth = wrapper.scrollWidth;
-        const scale = naturalWidth > 0 ? Math.min(1, TARGET_PX_WIDTH / naturalWidth) : 1;
-
-        // If still too big, scale down (<=1)
+        const naturalWidth = wrapper.scrollWidth || 1;
+        const TARGET_PX_WIDTH = 1600;
+        const scale = Math.min(1, TARGET_PX_WIDTH / naturalWidth);
         wrapper.style.transform = `scale(${scale})`;
 
-        // 3) Render to canvas
         const canvas = await html2canvas(temp, {
           backgroundColor: '#ffffff',
           scale: 2,
@@ -819,7 +806,6 @@
         let imgWidth = pageWidth - margin * 2;
         let imgHeight = imgWidth / imgRatio;
 
-        // Fit by height as well (no cropping)
         if (imgHeight > pageHeight - margin * 2) {
           imgHeight = pageHeight - margin * 2;
           imgWidth = imgHeight * imgRatio;
@@ -829,7 +815,7 @@
         const y = margin;
 
         pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
-        pdf.save('fifo_table_a4_landscape_fit.pdf');
+        pdf.save('fifo_table_a4_landscape.pdf');
       } catch (err) {
         console.error(err);
         setWarn('Не удалось сформировать PDF. Попробуйте ещё раз.');
