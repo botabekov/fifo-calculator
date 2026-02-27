@@ -35,7 +35,6 @@
       --r16:16px;
     }
 
-    /* ===== FULLSCREEN LAYOUT ===== */
     html, body{
       height:100%;
       margin:0;
@@ -47,7 +46,7 @@
         radial-gradient(1200px 600px at 10% -10%, rgba(37,99,235,.10), transparent 60%),
         radial-gradient(900px 600px at 100% 0%, rgba(16,185,129,.10), transparent 55%),
         var(--bg);
-      overflow:hidden; /* скролл будет внутри контейнера */
+      overflow:hidden;
     }
 
     .container{
@@ -110,7 +109,6 @@
       margin-top: 1px;
     }
 
-    /* Таблица должна занимать всё доступное место и скроллиться */
     .tableWrap{
       flex: 1 1 auto;
       overflow:auto;
@@ -127,7 +125,7 @@
       border-spacing:0;
       font-size: 13px;
       table-layout:fixed;
-      min-width: 980px; /* чтобы расчётные колонки не ломали */
+      min-width: 980px;
     }
 
     th,td{
@@ -155,7 +153,6 @@
     .sale td{ background: rgba(16,185,129,.08); }
     .transfer td{ background: rgba(245,158,11,.10); }
 
-    /* Блок ввода и кнопки внизу */
     #inputBlock{
       flex: 0 0 auto;
       display:flex;
@@ -329,17 +326,17 @@
           <tr>
             <th style="width:56px">№</th>
             <th style="width:220px">Тип</th>
-            <th style="width:90px">Кол-во</th>
-            <th style="width:90px">Цена</th>
-            <th style="width:110px">Комиссия</th>
+            <th style="width:110px">Кол-во</th>
+            <th style="width:110px">Цена</th>
+            <th style="width:130px">Комиссия</th>
 
-            <th style="width:140px">Себестоимость</th>
-            <th style="width:140px">Сумма при продаже</th>
-            <th style="width:140px">Прибыль / Убыток</th>
+            <th style="width:150px">Себестоимость</th>
+            <th style="width:150px">Сумма при продаже</th>
+            <th style="width:150px">Прибыль / Убыток</th>
 
-            <th style="width:110px">Остаток (шт)</th>
-            <th style="width:170px">Балансовая стоимость остатка</th>
-            <th style="width:160px">Сред. стоимость остатка</th>
+            <th style="width:130px">Остаток (шт)</th>
+            <th style="width:190px">Балансовая стоимость остатка</th>
+            <th style="width:170px">Сред. стоимость остатка</th>
 
             <th style="width:72px"><span class="sr-only">Действия</span></th>
           </tr>
@@ -364,7 +361,7 @@
       <div class="formRow2" id="row2">
         <div class="field" id="qtyField">
           <label for="qty">Количество</label>
-          <input type="number" id="qty" placeholder="целое число" min="1" step="1" inputmode="numeric" />
+          <input type="text" id="qty" placeholder="например 14,0045" inputmode="decimal" />
         </div>
 
         <div class="field" id="priceField">
@@ -373,7 +370,6 @@
         </div>
       </div>
 
-      <!-- Комиссия + галочка (только для Покупки) -->
       <div class="formRow2 compact" id="purchaseExtraRow" style="display:none;">
         <div class="field" id="commissionField">
           <label for="commission">Комиссии по сделке</label>
@@ -410,18 +406,51 @@
   (function(){
     const $ = (sel, root=document) => root.querySelector(sel);
 
+    // ===== Настройки точности =====
+    const DEC_DISPLAY = 6;  // отображение (в таблице) — 6 знаков
+    const DEC_INPUT_QTY_MAX = 16; // ввод количества — до 16 знаков после запятой
+    const EPS = 1e-12;
+
+    // округление
     const round = (n, d=2) => {
       const p = 10 ** d;
       return Math.round((n + Number.EPSILON) * p) / p;
     };
 
+    // parse "1 000 000,156" -> 1000000.156
     const parseNum = (v) => {
-      const s = String(v ?? "").trim().replace(/\s+/g, "").replace(",", ".");
+      const s = String(v ?? "")
+        .trim()
+        .replace(/\s+/g, "")   // убрать пробелы-разделители
+        .replace(",", ".");   // запятая -> точка
       const n = Number(s);
       return Number.isFinite(n) ? n : NaN;
     };
 
-    const fmt2 = (n) => Number.isFinite(n) ? round(n,2).toFixed(2) : "";
+    // проверка количества знаков после запятой во введённой строке
+    const validateDecimalsByInput = (raw, maxDecimals) => {
+      const s = String(raw ?? "").trim().replace(/\s+/g, "");
+      if (!s) return { ok: true };
+      const parts = s.split(/[.,]/);
+      if (parts.length === 1) return { ok: true };
+      const frac = parts[1] ?? "";
+      if (frac.length > maxDecimals) return { ok: false, decimals: frac.length };
+      return { ok: true, decimals: frac.length };
+    };
+
+    // RU формат: "1 000 000,156001"
+    const nf6 = new Intl.NumberFormat('ru-RU', {
+      minimumFractionDigits: DEC_DISPLAY,
+      maximumFractionDigits: DEC_DISPLAY
+    });
+
+    const fmt6 = (n) => {
+      if (!Number.isFinite(n)) return "";
+      // для стабильности — округляем перед форматированием
+      const r = round(n, DEC_DISPLAY);
+      // Intl чаще отдаёт NBSP, оставим обычный пробел:
+      return nf6.format(r).replace(/\u00A0/g, " ");
+    };
 
     const els = {};
     const bindEls = () => {
@@ -448,7 +477,7 @@
 
     const state = {
       ops: [],
-      lots: [] // {qty, price} where price = effective unit cost (with/without commission)
+      lots: [] // {qty, price} where price = effective unit cost
     };
 
     const setWarn = (msg='') => { if (els.warn) els.warn.textContent = msg; };
@@ -458,18 +487,19 @@
     const isSaleType = (type) => type === 'Продажа (Уход)';
     const isWriteOffType = (type) => type === 'Списание ЦБ (Уход)';
 
+    // остаток по лотам
     const calcRemainSnapshot = () => {
       let q = 0, v = 0;
       for (const lot of state.lots) {
-        if (lot.qty > 0) {
+        if (lot.qty > EPS) {
           q += lot.qty;
           v += lot.qty * lot.price;
         }
       }
       return {
-        qty: q,
-        value: round(v, 2),
-        avg: q ? round(v / q, 2) : 0
+        qty: q,                     // количество не округляем жёстко — только при показе
+        value: round(v, DEC_DISPLAY),
+        avg: q > EPS ? round(v / q, DEC_DISPLAY) : 0
       };
     };
 
@@ -478,7 +508,6 @@
 
       const body = els.tableBody;
       body.innerHTML = state.ops.length ? '' : '<tr><td colspan="12" class="muted">Нет операций</td></tr>';
-
       if (!state.ops.length) return;
 
       const frag = document.createDocumentFragment();
@@ -487,21 +516,23 @@
         const tr = document.createElement('tr');
         tr.className = isIncomeType(op.type) ? 'purchase' : (isSaleType(op.type) ? 'sale' : 'transfer');
 
-        const priceCell = isWriteOffType(op.type) ? '-' : fmt2(op.price);
-        const commCell = (op.type === 'Покупка (Приход)') ? fmt2(op.commission || 0) : '-';
+        // 6 знаков + RU формат
+        const qtyCell = Number.isFinite(op.qty) ? fmt6(op.qty) : '';
+        const priceCell = isWriteOffType(op.type) ? '-' : fmt6(op.price);
+        const commCell = (op.type === 'Покупка (Приход)') ? fmt6(op.commission || 0) : '-';
 
-        const costCell = Number.isFinite(op.cost) ? fmt2(op.cost) : '';
-        const revenueCell = Number.isFinite(op.revenue) ? fmt2(op.revenue) : '';
-        const pnlCell = Number.isFinite(op.pnl) ? fmt2(op.pnl) : '';
+        const costCell = Number.isFinite(op.cost) ? fmt6(op.cost) : '';
+        const revenueCell = Number.isFinite(op.revenue) ? fmt6(op.revenue) : '';
+        const pnlCell = Number.isFinite(op.pnl) ? fmt6(op.pnl) : '';
 
-        const remainCell = Number.isFinite(op.remain) ? String(op.remain) : '';
-        const balCell = Number.isFinite(op.balanceCost) ? fmt2(op.balanceCost) : '';
-        const avgCell = Number.isFinite(op.avgRemain) ? fmt2(op.avgRemain) : '';
+        const remainCell = Number.isFinite(op.remain) ? fmt6(op.remain) : '';
+        const balCell = Number.isFinite(op.balanceCost) ? fmt6(op.balanceCost) : '';
+        const avgCell = Number.isFinite(op.avgRemain) ? fmt6(op.avgRemain) : '';
 
         tr.innerHTML = `
           <td>${i+1}</td>
           <td>${op.type}</td>
-          <td>${op.qty}</td>
+          <td>${qtyCell}</td>
           <td>${priceCell}</td>
           <td>${commCell}</td>
 
@@ -521,11 +552,12 @@
       body.appendChild(frag);
     };
 
+    // доступность по простому балансу (под дроби подходит)
     const getAvailable = () => {
       let available = 0;
       for (const op of state.ops) {
         if (isIncomeType(op.type)) available += op.qty;
-        else available -= op.qty; // продажа/списание храним как qty > 0
+        else available -= op.qty;
       }
       return available;
     };
@@ -536,7 +568,6 @@
       for (let idx = 0; idx < state.ops.length; idx++) {
         const op = state.ops[idx];
 
-        // сброс
         op.cost = NaN;
         op.revenue = NaN;
         op.pnl = NaN;
@@ -545,10 +576,8 @@
         op.avgRemain = NaN;
 
         if (isIncomeType(op.type)) {
-          // effective unit cost
           let lotPrice = op.price;
 
-          // комиссия учитывается только для "Покупка" и только если галочка включена
           if (op.type === 'Покупка (Приход)' && op.includeCommission) {
             const c = Number.isFinite(op.commission) ? op.commission : 0;
             lotPrice = (op.qty * op.price + c) / op.qty;
@@ -556,52 +585,49 @@
 
           state.lots.push({ qty: op.qty, price: lotPrice });
 
-          // себестоимость прихода (по факту)
-          op.cost = round(op.qty * lotPrice, 2);
+          op.cost = round(op.qty * lotPrice, DEC_DISPLAY);
 
         } else if (isSaleType(op.type)) {
-          // продажа: FIFO cost
           let need = op.qty;
           let fifoCost = 0;
 
-          while (need > 0 && state.lots.length) {
+          while (need > EPS && state.lots.length) {
             const lot = state.lots[0];
             const used = Math.min(need, lot.qty);
 
-            if (used > 0) {
+            if (used > EPS) {
               fifoCost += used * lot.price;
               lot.qty -= used;
               need -= used;
             }
-            if (lot.qty === 0) state.lots.shift();
+            if (lot.qty <= EPS) state.lots.shift();
           }
 
-          op.cost = round(fifoCost, 2);
-          op.revenue = round(op.qty * op.price, 2);
-          op.pnl = round(op.revenue - op.cost, 2);
+          op.cost = round(fifoCost, DEC_DISPLAY);
+          op.revenue = round(op.qty * op.price, DEC_DISPLAY);
+          op.pnl = round(op.revenue - op.cost, DEC_DISPLAY);
 
         } else if (isWriteOffType(op.type)) {
-          // списание: FIFO cost, без выручки/приб.
           let need = op.qty;
           let fifoCost = 0;
 
-          while (need > 0 && state.lots.length) {
+          while (need > EPS && state.lots.length) {
             const lot = state.lots[0];
             const used = Math.min(need, lot.qty);
 
-            if (used > 0) {
+            if (used > EPS) {
               fifoCost += used * lot.price;
               lot.qty -= used;
               need -= used;
             }
-            if (lot.qty === 0) state.lots.shift();
+            if (lot.qty <= EPS) state.lots.shift();
           }
 
-          op.cost = round(fifoCost, 2);
+          op.cost = round(fifoCost, DEC_DISPLAY);
         }
 
         const snap = calcRemainSnapshot();
-        op.remain = snap.qty;
+        op.remain = snap.qty;               // покажем 6 знаков при рендере
         op.balanceCost = snap.value;
         op.avgRemain = snap.avg;
       }
@@ -612,13 +638,11 @@
     const onTypeChange = () => {
       const type = els.type.value;
 
-      // Цена скрывается только для "Списание"
       const hidePrice = isWriteOffType(type);
       els.priceField.style.display = hidePrice ? 'none' : 'block';
       els.price.disabled = hidePrice;
       if (hidePrice) els.price.value = '';
 
-      // Комиссия + галочка показываются только для "Покупка (Приход)"
       const showPurchaseExtra = (type === 'Покупка (Приход)');
       els.purchaseExtraRow.style.display = showPurchaseExtra ? 'grid' : 'none';
       if (!showPurchaseExtra) {
@@ -630,43 +654,47 @@
     const addOperation = () => {
       const type = els.type.value;
 
+      // проверим точность ввода количества по строке (до 16 знаков)
+      const decCheck = validateDecimalsByInput(els.qty.value, DEC_INPUT_QTY_MAX);
+      if (!decCheck.ok) {
+        return setWarn(`Количество: не более ${DEC_INPUT_QTY_MAX} знаков после запятой (сейчас ${decCheck.decimals}).`);
+      }
+
       const qty = parseNum(els.qty.value);
       const price = parseNum(els.price.value);
 
-      // комиссия только для покупки
       const commission = parseNum(els.commission.value);
       const includeCommission = !!els.includeCommission.checked;
 
-      if (!Number.isFinite(qty) || qty <= 0 || !Number.isInteger(qty)) {
-        return setWarn('Введите корректное количество (целое число > 0).');
+      if (!Number.isFinite(qty) || qty <= 0) {
+        return setWarn('Введите корректное количество (> 0). Можно с запятой.');
       }
 
       if (!isWriteOffType(type)) {
         if (!Number.isFinite(price) || price <= 0) {
-          return setWarn('Введите корректную цену (> 0). Можно с запятой.');
+          return setWarn('Введите корректную цену (> 0). Можно с запятой или с пробелами-разделителями.');
         }
       }
 
       if (type === 'Покупка (Приход)') {
-        // если комиссия пустая — считаем 0
         if (els.commission.value.trim() !== '' && (!Number.isFinite(commission) || commission < 0)) {
           return setWarn('Комиссия должна быть числом (>= 0). Можно с запятой.');
         }
       }
 
-      // контроль доступности
       const currentAvail = getAvailable();
       const availAfter = isIncomeType(type) ? (currentAvail + qty) : (currentAvail - qty);
-      if (availAfter < 0) {
+      if (availAfter < -EPS) {
         const verb = isWriteOffType(type) ? 'списать' : 'продать';
-        return setWarn(`Недостаточно бумаг: доступно ${currentAvail} шт., пытаетесь ${verb} ${qty} шт.`);
+        return setWarn(`Недостаточно бумаг: доступно ${fmt6(currentAvail)} шт., пытаетесь ${verb} ${fmt6(qty)} шт.`);
       }
 
       setWarn('');
 
       state.ops.push({
         type,
-        qty: Math.trunc(qty),
+        qty: qty, // дробное количество сохраняем как есть
+
         price: isWriteOffType(type) ? NaN : price,
 
         commission: (type === 'Покупка (Приход)') ? (Number.isFinite(commission) ? commission : 0) : NaN,
@@ -682,7 +710,6 @@
 
       compute();
 
-      // очистка полей
       els.qty.value = '';
       els.price.value = '';
       els.commission.value = '';
