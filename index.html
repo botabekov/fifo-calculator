@@ -28,17 +28,12 @@
       --danger:#ef4444;
       --danger2:#dc2626;
 
-      --shadow: 0 12px 30px rgba(2, 8, 23, .08);
       --shadow2: 0 2px 10px rgba(2, 8, 23, .06);
 
       --r12:12px;
-      --r16:16px;
     }
 
-    html, body{
-      height:100%;
-      margin:0;
-    }
+    html, body{ height:100%; margin:0; }
     body{
       font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
       color:var(--ink);
@@ -52,14 +47,9 @@
     .container{
       width:100vw;
       height:100vh;
-      max-width:none;
       margin:0;
       padding: 18px;
       background: var(--card);
-      border: 0;
-      border-radius: 0;
-      box-shadow: none;
-      position: relative;
       overflow: hidden;
 
       display:flex;
@@ -73,21 +63,18 @@
       letter-spacing: -0.02em;
       text-align:center;
     }
-
     .subtitle{
       text-align:center;
       color:var(--muted);
       font-size: 13px;
       margin: 0 0 2px;
     }
-
     .flower-row{
       text-align:center;
       margin: 0 0 4px;
       opacity: .9;
       font-size: 16px;
     }
-
     .instruction{
       display:flex;
       gap:10px;
@@ -115,7 +102,7 @@
       border-radius: var(--r12);
       box-shadow: var(--shadow2);
       border:1px solid var(--line);
-      margin: 0;
+      background:#fff;
       min-height: 180px;
     }
 
@@ -132,7 +119,6 @@
       border-bottom:1px solid var(--line);
       padding:10px 10px;
       text-align:center;
-      word-wrap:break-word;
       background:#fff;
       white-space: nowrap;
     }
@@ -158,7 +144,6 @@
       display:flex;
       flex-direction:column;
       gap:10px;
-      margin: 0;
     }
 
     .formRow2{
@@ -167,7 +152,6 @@
       gap:10px;
       align-items:end;
     }
-
     .formRow2.compact{
       grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     }
@@ -177,9 +161,6 @@
       .formRow2.compact{ grid-template-columns: 1fr; }
       table{ min-width: 860px; }
     }
-
-    .field{ min-width:0; }
-    input,select{ min-width:0; }
 
     .field label{
       display:block;
@@ -235,10 +216,7 @@
       white-space: normal;
     }
 
-    #warn{
-      margin-top: 2px;
-      min-height: 18px;
-    }
+    #warn{ margin-top: 2px; min-height: 18px; }
 
     .btn{
       border:none;
@@ -262,9 +240,8 @@
       display:flex;
       gap:10px;
       margin-top: 6px;
-      flex: 0 0 auto;
     }
-    .actions .btn{flex:1}
+    .actions .btn{ flex:1 }
 
     #resetBtn{
       background:#f1f5f9;
@@ -298,7 +275,6 @@
       color: var(--muted);
       font-size: 12px;
       text-align: center;
-      flex: 0 0 auto;
     }
 
     .sr-only{
@@ -348,7 +324,7 @@
     </div>
 
     <div id="inputBlock">
-      <div class="field" id="typeField">
+      <div class="field">
         <label for="type">Тип операции</label>
         <select id="type">
           <option value="Покупка (Приход)">Покупка (Приход)</option>
@@ -358,25 +334,25 @@
         </select>
       </div>
 
-      <div class="formRow2" id="row2">
-        <div class="field" id="qtyField">
+      <div class="formRow2">
+        <div class="field">
           <label for="qty">Количество</label>
           <input type="text" id="qty" placeholder="например 14,0045" inputmode="decimal" />
         </div>
 
         <div class="field" id="priceField">
           <label for="price">Цена</label>
-          <input type="text" id="price" placeholder="точка или запятая" inputmode="decimal" />
+          <input type="text" id="price" placeholder="например 1 000 000,123456" inputmode="decimal" />
         </div>
       </div>
 
       <div class="formRow2 compact" id="purchaseExtraRow" style="display:none;">
-        <div class="field" id="commissionField">
+        <div class="field">
           <label for="commission">Комиссии по сделке</label>
           <input type="text" id="commission" placeholder="например 100 или 100,15" inputmode="decimal" />
         </div>
 
-        <div class="field" id="includeCommField">
+        <div class="field">
           <label>&nbsp;</label>
           <div class="checkRow">
             <div class="left">
@@ -393,7 +369,7 @@
 
       <div class="actions">
         <button class="btn" id="resetBtn">Очистить всё</button>
-        <button class="btn" id="exportBtn">Выгрузить PNG</button>
+        <button class="btn" id="exportBtn">Выгрузить PDF</button>
       </div>
 
       <div class="tip">Подсказка: Enter в полях добавляет операцию.</div>
@@ -401,33 +377,31 @@
   </div>
 
   <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
   <script>
   (function(){
     const $ = (sel, root=document) => root.querySelector(sel);
 
-    // ===== Настройки точности =====
-    const DEC_DISPLAY = 6;  // отображение (в таблице) — 6 знаков
-    const DEC_INPUT_QTY_MAX = 16; // ввод количества — до 16 знаков после запятой
+    // ===== Precision / format =====
+    const DEC_DISPLAY = 6;          // вывод в таблице
+    const DEC_INPUT_QTY_MAX = 16;   // ввод количества
     const EPS = 1e-12;
 
-    // округление
     const round = (n, d=2) => {
       const p = 10 ** d;
       return Math.round((n + Number.EPSILON) * p) / p;
     };
 
-    // parse "1 000 000,156" -> 1000000.156
     const parseNum = (v) => {
       const s = String(v ?? "")
         .trim()
-        .replace(/\s+/g, "")   // убрать пробелы-разделители
-        .replace(",", ".");   // запятая -> точка
+        .replace(/\s+/g, "")
+        .replace(",", ".");
       const n = Number(s);
       return Number.isFinite(n) ? n : NaN;
     };
 
-    // проверка количества знаков после запятой во введённой строке
     const validateDecimalsByInput = (raw, maxDecimals) => {
       const s = String(raw ?? "").trim().replace(/\s+/g, "");
       if (!s) return { ok: true };
@@ -438,7 +412,6 @@
       return { ok: true, decimals: frac.length };
     };
 
-    // RU формат: "1 000 000,156001"
     const nf6 = new Intl.NumberFormat('ru-RU', {
       minimumFractionDigits: DEC_DISPLAY,
       maximumFractionDigits: DEC_DISPLAY
@@ -446,9 +419,7 @@
 
     const fmt6 = (n) => {
       if (!Number.isFinite(n)) return "";
-      // для стабильности — округляем перед форматированием
       const r = round(n, DEC_DISPLAY);
-      // Intl чаще отдаёт NBSP, оставим обычный пробел:
       return nf6.format(r).replace(/\u00A0/g, " ");
     };
 
@@ -464,21 +435,16 @@
       els.includeCommission = $('#includeCommission');
 
       els.priceField = $('#priceField');
-      els.qtyField = $('#qtyField');
 
       els.add = $('#addBtn');
       els.warn = $('#warn');
       els.reset = $('#resetBtn');
       els.export = $('#exportBtn');
 
-      els.container = $('#calcContainer');
       els.table = $('#operationsTable');
     };
 
-    const state = {
-      ops: [],
-      lots: [] // {qty, price} where price = effective unit cost
-    };
+    const state = { ops: [], lots: [] };
 
     const setWarn = (msg='') => { if (els.warn) els.warn.textContent = msg; };
 
@@ -487,7 +453,6 @@
     const isSaleType = (type) => type === 'Продажа (Уход)';
     const isWriteOffType = (type) => type === 'Списание ЦБ (Уход)';
 
-    // остаток по лотам
     const calcRemainSnapshot = () => {
       let q = 0, v = 0;
       for (const lot of state.lots) {
@@ -497,15 +462,13 @@
         }
       }
       return {
-        qty: q,                     // количество не округляем жёстко — только при показе
+        qty: q,
         value: round(v, DEC_DISPLAY),
         avg: q > EPS ? round(v / q, DEC_DISPLAY) : 0
       };
     };
 
     const renderRows = () => {
-      if (!els.tableBody) return;
-
       const body = els.tableBody;
       body.innerHTML = state.ops.length ? '' : '<tr><td colspan="12" class="muted">Нет операций</td></tr>';
       if (!state.ops.length) return;
@@ -516,7 +479,6 @@
         const tr = document.createElement('tr');
         tr.className = isIncomeType(op.type) ? 'purchase' : (isSaleType(op.type) ? 'sale' : 'transfer');
 
-        // 6 знаков + RU формат
         const qtyCell = Number.isFinite(op.qty) ? fmt6(op.qty) : '';
         const priceCell = isWriteOffType(op.type) ? '-' : fmt6(op.price);
         const commCell = (op.type === 'Покупка (Приход)') ? fmt6(op.commission || 0) : '-';
@@ -552,7 +514,6 @@
       body.appendChild(frag);
     };
 
-    // доступность по простому балансу (под дроби подходит)
     const getAvailable = () => {
       let available = 0;
       for (const op of state.ops) {
@@ -568,12 +529,8 @@
       for (let idx = 0; idx < state.ops.length; idx++) {
         const op = state.ops[idx];
 
-        op.cost = NaN;
-        op.revenue = NaN;
-        op.pnl = NaN;
-        op.remain = NaN;
-        op.balanceCost = NaN;
-        op.avgRemain = NaN;
+        op.cost = NaN; op.revenue = NaN; op.pnl = NaN;
+        op.remain = NaN; op.balanceCost = NaN; op.avgRemain = NaN;
 
         if (isIncomeType(op.type)) {
           let lotPrice = op.price;
@@ -584,7 +541,6 @@
           }
 
           state.lots.push({ qty: op.qty, price: lotPrice });
-
           op.cost = round(op.qty * lotPrice, DEC_DISPLAY);
 
         } else if (isSaleType(op.type)) {
@@ -627,7 +583,7 @@
         }
 
         const snap = calcRemainSnapshot();
-        op.remain = snap.qty;               // покажем 6 знаков при рендере
+        op.remain = snap.qty;
         op.balanceCost = snap.value;
         op.avgRemain = snap.avg;
       }
@@ -654,7 +610,6 @@
     const addOperation = () => {
       const type = els.type.value;
 
-      // проверим точность ввода количества по строке (до 16 знаков)
       const decCheck = validateDecimalsByInput(els.qty.value, DEC_INPUT_QTY_MAX);
       if (!decCheck.ok) {
         return setWarn(`Количество: не более ${DEC_INPUT_QTY_MAX} знаков после запятой (сейчас ${decCheck.decimals}).`);
@@ -672,7 +627,7 @@
 
       if (!isWriteOffType(type)) {
         if (!Number.isFinite(price) || price <= 0) {
-          return setWarn('Введите корректную цену (> 0). Можно с запятой или с пробелами-разделителями.');
+          return setWarn('Введите корректную цену (> 0). Можно с запятой и пробелами-разделителями.');
         }
       }
 
@@ -693,19 +648,14 @@
 
       state.ops.push({
         type,
-        qty: qty, // дробное количество сохраняем как есть
-
+        qty: qty,
         price: isWriteOffType(type) ? NaN : price,
 
         commission: (type === 'Покупка (Приход)') ? (Number.isFinite(commission) ? commission : 0) : NaN,
         includeCommission: (type === 'Покупка (Приход)') ? includeCommission : false,
 
-        cost: NaN,
-        revenue: NaN,
-        pnl: NaN,
-        remain: NaN,
-        balanceCost: NaN,
-        avgRemain: NaN
+        cost: NaN, revenue: NaN, pnl: NaN,
+        remain: NaN, balanceCost: NaN, avgRemain: NaN
       });
 
       compute();
@@ -729,7 +679,6 @@
     const resetAll = () => {
       state.ops.length = 0;
       state.lots.length = 0;
-
       setWarn('');
       renderRows();
 
@@ -737,37 +686,155 @@
       els.price.value = '';
       els.commission.value = '';
       els.includeCommission.checked = false;
-
       els.qty.focus();
     };
 
-    const exportPng = async () => {
-      if (!els.container) return;
-
+    // ===== PDF export: Excel-style + FIT-TO-PAGE (always fits A4 landscape) =====
+    const exportPdf = async () => {
       if (typeof html2canvas !== 'function') {
-        setWarn('Экспорт недоступен: библиотека html2canvas не загружена.');
+        setWarn('Экспорт недоступен: html2canvas не загружен.');
+        return;
+      }
+      if (!window.jspdf || !window.jspdf.jsPDF) {
+        setWarn('Экспорт недоступен: jsPDF не загружен.');
+        return;
+      }
+
+      const table = document.getElementById('operationsTable');
+      if (!table) {
+        setWarn('Не удалось найти таблицу для выгрузки.');
         return;
       }
 
       const prev = els.export.textContent;
-      els.export.textContent = 'Готовлю…';
+      els.export.textContent = 'Формирую PDF…';
       els.export.disabled = true;
       setWarn('');
 
+      // 1) Build Excel-like temp layout
+      const temp = document.createElement('div');
+      temp.style.position = 'fixed';
+      temp.style.left = '-10000px';
+      temp.style.top = '0';
+      temp.style.background = '#ffffff';
+      temp.style.padding = '18px 22px';
+      temp.style.fontFamily = 'Arial, sans-serif';
+      temp.style.color = '#000';
+
+      // wrapper that we will SCALE to fit
+      const wrapper = document.createElement('div');
+      wrapper.style.transformOrigin = 'top left';
+
+      const title = document.createElement('div');
+      title.textContent = 'Калькулятор FIFO';
+      title.style.textAlign = 'center';
+      title.style.fontSize = '22px';
+      title.style.fontWeight = '700';
+      title.style.margin = '6px 0 14px';
+
+      const clone = table.cloneNode(true);
+
+      // remove last column (actions)
+      const ths = clone.querySelectorAll('thead th');
+      if (ths.length) ths[ths.length - 1].remove();
+
+      clone.querySelectorAll('tbody tr').forEach(tr => {
+        const tds = tr.querySelectorAll('td');
+        if (tds.length) tds[tds.length - 1].remove();
+      });
+
+      // Excel styling
+      clone.style.width = 'auto';
+      clone.style.borderCollapse = 'collapse';
+      clone.style.tableLayout = 'auto';
+      clone.style.fontSize = '12px';
+      clone.style.minWidth = '0';
+
+      clone.querySelectorAll('thead th').forEach(th => {
+        th.style.background = '#f2f2f2';
+        th.style.fontWeight = '700';
+        th.style.textAlign = 'center';
+        th.style.border = '1px solid #000';
+        th.style.padding = '6px 6px';
+        th.style.whiteSpace = 'nowrap';
+        th.style.position = 'static';
+      });
+
+      clone.querySelectorAll('tbody td').forEach(td => {
+        td.style.background = '#fff';
+        td.style.border = '1px solid #000';
+        td.style.padding = '5px 6px';
+        td.style.textAlign = 'center';
+        td.style.whiteSpace = 'nowrap';
+      });
+
+      clone.querySelectorAll('tbody tr').forEach(tr => {
+        tr.className = '';
+        tr.style.background = '#fff';
+      });
+
+      wrapper.appendChild(title);
+      wrapper.appendChild(clone);
+      temp.appendChild(wrapper);
+      document.body.appendChild(temp);
+
       try {
-        const canvas = await html2canvas(els.container, {
-          backgroundColor: null,
-          scale: Math.min(2, window.devicePixelRatio || 1)
+        // 2) Compute scale to fit A4 landscape width (safe pixels)
+        // We’ll aim for a “virtual” page width in pixels for html2canvas capture.
+        // Pick a reasonable target width so quality is good.
+        const TARGET_PX_WIDTH = 1600; // virtual target page width for the layout
+        // Make wrapper natural size first
+        wrapper.style.transform = 'scale(1)';
+
+        // Measure natural width
+        const naturalWidth = wrapper.scrollWidth;
+        const scale = naturalWidth > 0 ? Math.min(1, TARGET_PX_WIDTH / naturalWidth) : 1;
+
+        // If still too big, scale down (<=1)
+        wrapper.style.transform = `scale(${scale})`;
+
+        // 3) Render to canvas
+        const canvas = await html2canvas(temp, {
+          backgroundColor: '#ffffff',
+          scale: 2,
+          useCORS: true
         });
 
-        const a = document.createElement('a');
-        a.download = 'fifo_result.png';
-        a.href = canvas.toDataURL('image/png');
-        a.click();
+        const imgData = canvas.toDataURL('image/png');
+        const { jsPDF } = window.jspdf;
+
+        const pdf = new jsPDF({
+          orientation: 'landscape',
+          unit: 'mm',
+          format: 'a4'
+        });
+
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+
+        const imgProps = pdf.getImageProperties(imgData);
+        const imgRatio = imgProps.width / imgProps.height;
+
+        const margin = 10;
+        let imgWidth = pageWidth - margin * 2;
+        let imgHeight = imgWidth / imgRatio;
+
+        // Fit by height as well (no cropping)
+        if (imgHeight > pageHeight - margin * 2) {
+          imgHeight = pageHeight - margin * 2;
+          imgWidth = imgHeight * imgRatio;
+        }
+
+        const x = (pageWidth - imgWidth) / 2;
+        const y = margin;
+
+        pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
+        pdf.save('fifo_table_a4_landscape_fit.pdf');
       } catch (err) {
         console.error(err);
-        setWarn('Не удалось выгрузить PNG. Попробуйте ещё раз.');
+        setWarn('Не удалось сформировать PDF. Попробуйте ещё раз.');
       } finally {
+        temp.remove();
         els.export.textContent = prev;
         els.export.disabled = false;
       }
@@ -787,7 +854,7 @@
       els.add.addEventListener('click', addOperation);
       els.table.addEventListener('click', onTableClick);
       els.reset.addEventListener('click', resetAll);
-      els.export.addEventListener('click', exportPng);
+      els.export.addEventListener('click', exportPdf);
 
       els.qty.addEventListener('keydown', onKeyDown);
       els.price.addEventListener('keydown', onKeyDown);
