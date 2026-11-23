@@ -9,11 +9,80 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
+  <script>
+    (() => {
+      const key = 'fifo-calculator:theme';
+      const system = window.matchMedia('(prefers-color-scheme: dark)');
+      let preference;
+      try { preference = localStorage.getItem(key); } catch {}
+      let toggle;
+
+      function applyTheme() {
+        const dark = preference === 'dark' || (preference !== 'light' && system.matches);
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        if (toggle) toggle.setAttribute('aria-pressed', String(dark));
+      }
+
+      applyTheme();
+      system.addEventListener('change', applyTheme);
+      document.addEventListener('DOMContentLoaded', () => {
+        toggle = document.getElementById('themeToggle');
+        applyTheme();
+        toggle.addEventListener('click', () => {
+          preference = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+          applyTheme();
+          try { localStorage.setItem(key, preference); } catch {}
+        });
+      });
+    })();
+  </script>
+
   <style>
 
     *, *::before, *::after { box-sizing: border-box; }
-    :root { color-scheme: light; --navy: #163659; --ink: #172940; --muted: #526580; --line: #dbe4ef; }
-    body { margin: 0; background: #f1f5fa; color: var(--ink); font: 14px/1.5 Inter, system-ui, sans-serif; }
+    :root {
+      color-scheme: light;
+      --bg: #f1f5fa;
+      --surface: #fff;
+      --ink: #172940;
+      --muted: #526580;
+      --line: #dbe4ef;
+      --navy: #163659;
+      --inputBorder: #aab9ca;
+      --buttonBorder: #b8c7d8;
+      --buttonText: #163659;
+      --focus: #226cb1;
+      --hover: #e9f1fb;
+      --primaryHover: #245581;
+      --headingBg: #e9eff7;
+      --headingText: #284461;
+      --stripe: #f7f9fc;
+      --rowHover: #edf3fb;
+      --negative: #9b2639;
+      --positive: #166344;
+    }
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #101722;
+      --surface: #182333;
+      --ink: #eaf0f8;
+      --muted: #a9bdd4;
+      --line: #34475d;
+      --navy: #355f91;
+      --inputBorder: #68829f;
+      --buttonBorder: #68829f;
+      --buttonText: #d1e5ff;
+      --focus: #8bc4ff;
+      --hover: #293e58;
+      --primaryHover: #436fa5;
+      --headingBg: #24364d;
+      --headingText: #d3e4f9;
+      --stripe: #1d2a3c;
+      --rowHover: #273951;
+      --negative: #ff9caa;
+      --positive: #82dfb1;
+    }
+    body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 Inter, system-ui, sans-serif; }
     .container { max-width: 1550px; margin: auto; padding: 36px clamp(14px, 4vw, 56px); }
     h1, h2, p, dl, dd { margin: 0; }
     h1 { font-size: clamp(32px, 5vw, 48px); line-height: 1.1; letter-spacing: -.045em; }
@@ -24,36 +93,36 @@
     .summary > div:last-child { background: #102945; }
     .summary dt { color: #c4deff; font-size: 13px; }
     .summary dd { font-size: clamp(20px, 3vw, 36px); font-weight: 700; letter-spacing: -.035em; overflow-wrap: anywhere; }
-    .panel { min-width: 0; border: 1px solid var(--line); border-radius: 16px; background: white; }
+    .panel { min-width: 0; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); }
     #inputBlock { display: grid; gap: 12px; padding: 16px; margin-bottom: 16px; }
     .formFields, .formRow2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: end; }
     #splitFields[hidden] { display: none; }
     #splitFields { align-self: end; }
     .field > label { display: block; margin-bottom: 4px; font-size: 13px; color: var(--muted); }
     input, select, button { font: inherit; }
-    input:not([type=checkbox]), select { width: 100%; min-height: 44px; border: 1px solid #aab9ca; border-radius: 8px; background: #fff; color: var(--ink); padding: 8px 10px; font-size: 16px; }
-    :focus-visible { outline: 2px solid #226cb1; outline-offset: 3px; }
+    input:not([type=checkbox]), select { width: 100%; min-height: 44px; border: 1px solid var(--inputBorder); border-radius: 8px; background: var(--surface); color: var(--ink); padding: 8px 10px; font-size: 16px; }
+    :focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
     .checkRow { display: flex; align-items: center; gap: 9px; min-height: 44px; cursor: pointer; }
     .checkRow input { flex: none; width: 18px; height: 18px; margin: 0; accent-color: var(--navy); }
     .actions, .tableHeader { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .tableHeader { justify-content: space-between; padding: 12px 16px; }
-    #warn { color: #9b2639; }
+    #warn { color: var(--negative); }
     #warn:empty { position: absolute; }
-    .btn, .btn-del { min-height: 44px; border-radius: 8px; border: 1px solid #b8c7d8; background: white; color: var(--navy); padding: 8px 13px; cursor: pointer; font-weight: 600; }
-    .btn:hover, .btn-del:hover { background: #e9f1fb; }
+    .btn, .btn-del { min-height: 44px; border-radius: 8px; border: 1px solid var(--buttonBorder); background: var(--surface); color: var(--buttonText); padding: 8px 13px; cursor: pointer; font-weight: 600; }
+    .btn:hover, .btn-del:hover { background: var(--hover); }
     #addBtn { background: var(--navy); color: white; border-color: var(--navy); justify-self: start; }
-    #addBtn:hover { background: #245581; }
+    #addBtn:hover { background: var(--primaryHover); }
     .btn:disabled { opacity: .6; cursor: wait; }
-    .btn-del { width: 44px; padding: 0; color: #9b2639; font-size: 18px; }
+    .btn-del { width: 44px; padding: 0; color: var(--negative); font-size: 18px; }
     .tableWrap { max-height: 52vh; max-height: 52dvh; min-height: 150px; overflow: auto; border-top: 1px solid var(--line); border-radius: 0 0 15px 15px; }
     table { width: 100%; border-spacing: 0; font-size: 13px; }
     th, td { border-bottom: 1px solid var(--line); padding: 10px 12px; text-align: right; }
-    th { position: sticky; top: 0; z-index: 1; background: #e9eff7; color: #284461; vertical-align: bottom; }
+    th { position: sticky; top: 0; z-index: 1; background: var(--headingBg); color: var(--headingText); vertical-align: bottom; }
     td { white-space: nowrap; }
     th:nth-child(2), td:nth-child(2) { text-align: left; }
     th:last-child, td:last-child, td[colspan] { text-align: center; }
-    tbody tr:nth-child(even) td { background: #f7f9fc; }
-    tbody tr:hover td { background: #edf3fb; }
+    tbody tr:nth-child(even) td { background: var(--stripe); }
+    tbody tr:hover td { background: var(--rowHover); }
     .editable { cursor: text; }
     .editable:hover { text-decoration: underline dotted; text-underline-offset: 4px; }
     .cellEditor { display: grid; gap: 6px; min-width: 135px; text-align: left; white-space: normal; }
@@ -63,19 +132,19 @@
     .history summary { cursor: pointer; font-weight: 600; }
     .history ul { padding: 0; margin: 10px 0 0; list-style: none; }
     .history li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 0; border-top: 1px solid var(--line); }
-    .storageStatus { margin-bottom: 12px; color: #9b2639; }
+    .storageStatus { margin-bottom: 12px; color: var(--negative); }
     .storageStatus:empty { position: absolute; }
     .editHint { margin: 0 16px 10px; font-size: 13px; }
-    .editError { margin: 0 16px 10px; color: #9b2639; }
+    .editError { margin: 0 16px 10px; color: var(--negative); }
     .editError:empty { position: absolute; }
     .muted { color: var(--muted); }
     .summary dd, td { font-variant-numeric: tabular-nums; }
     .splitMovement { display: block; line-height: 1.5; }
     .splitRatioLabel { display: block; margin-top: 2px; font-size: 11px; }
-    .splitOut { color: #9b2639; }
-    .splitIn { color: #166344; }
-    .pnl-positive { color: #166344; font-weight: 700; }
-    .pnl-negative { color: #9b2639; font-weight: 700; }
+    .splitOut { color: var(--negative); }
+    .splitIn { color: var(--positive); }
+    .pnl-positive { color: var(--positive); font-weight: 700; }
+    .pnl-negative { color: var(--negative); font-weight: 700; }
 
     .tableWrap table { table-layout: fixed; }
     .tableWrap th, .tableWrap td { padding: 9px 6px; overflow-wrap: anywhere; }
@@ -122,14 +191,19 @@
       .formFields, .formRow2.compact { grid-template-columns: minmax(0, 1fr); }
       #addBtn { width: 100%; }
     }
-  </style>
+    .pageHeader { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 8px 16px; margin-bottom: 20px; }
+    .pageHeader .instruction { margin-bottom: 0; }
+    </style>
 </head>
 
 <body>
   <div class="container" id="calcContainer">
-    <header>
+    <header class="pageHeader">
+      <div>
       <h1>Калькулятор FIFO</h1>
       <p class="instruction">Добавляйте операции в порядке их совершения.</p>
+      </div>
+      <button type="button" class="btn" id="themeToggle" aria-pressed="false">Ночной режим</button>
     </header>
 
     <dl class="summary" aria-label="Итоги расчёта" aria-live="polite" aria-atomic="true">
@@ -919,6 +993,10 @@
       });
 
       // Excel styling
+      clone.style.colorScheme = 'light';
+      clone.style.setProperty('--muted', '#526580');
+      clone.style.setProperty('--negative', '#9b2639');
+      clone.style.setProperty('--positive', '#166344');
       clone.style.width = 'auto';
       clone.style.borderCollapse = 'collapse';
       clone.style.tableLayout = 'auto';
@@ -926,6 +1004,7 @@
       clone.style.minWidth = '0';
 
       clone.querySelectorAll('thead th').forEach(th => {
+        th.style.color = '#284461';
         th.style.background = '#f2f2f2';
         th.style.fontWeight = '700';
         th.style.textAlign = 'center';
