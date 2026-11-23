@@ -27,6 +27,8 @@
     .panel { min-width: 0; border: 1px solid var(--line); border-radius: 16px; background: white; }
     #inputBlock { display: grid; gap: 12px; padding: 16px; margin-bottom: 16px; }
     .formFields, .formRow2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: end; }
+    #splitFields[hidden] { display: none; }
+    #splitFields { align-self: end; }
     .field > label { display: block; margin-bottom: 4px; font-size: 13px; color: var(--muted); }
     input, select, button { font: inherit; }
     input:not([type=checkbox]), select { width: 100%; min-height: 44px; border: 1px solid #aab9ca; border-radius: 8px; background: #fff; color: var(--ink); padding: 8px 10px; font-size: 16px; }
@@ -105,10 +107,12 @@
             <option value="Зачисление ЦБ (Приход)">Зачисление ЦБ (Приход)</option>
             <option value="Продажа (Уход)">Продажа (Уход)</option>
             <option value="Списание ЦБ (Уход)">Списание ЦБ (Уход)</option>
-          </select>
+              <option value="Сплит">Сплит</option>
+              <option value="Обратный сплит">Обратный сплит</option>
+            </select>
         </div>
 
-        <div class="formRow2">
+          <div class="formRow2" id="tradeFields">
           <div class="field">
             <label for="qty">Количество</label>
             <input type="text" id="qty" placeholder="например 14,0045" inputmode="decimal" />
@@ -121,6 +125,19 @@
         </div>
       </div>
 
+      <div id="splitFields" hidden>
+        <div class="formRow2">
+          <div class="field">
+            <label for="splitOld">Старых акций</label>
+            <input id="splitOld" inputmode="numeric" placeholder="10" />
+          </div>
+          <div class="field">
+            <label for="splitNew">Новых акций</label>
+            <input id="splitNew" inputmode="numeric" placeholder="1" />
+          </div>
+        </div>
+        <p class="muted">Дробный остаток сохраняется. Денежная компенсация не рассчитывается.</p>
+      </div>
       <div class="formRow2 compact" id="purchaseExtraRow" style="display:none;">
         <div class="field">
           <label for="commission">Комиссии по сделке</label>
@@ -224,6 +241,10 @@
       els.tableBody = $('#operationsTable tbody');
       els.type = $('#type');
       els.qty = $('#qty');
+      els.tradeFields = $('#tradeFields');
+      els.splitFields = $('#splitFields');
+      els.splitOld = $('#splitOld');
+      els.splitNew = $('#splitNew');
       els.price = $('#price');
 
       els.purchaseExtraRow = $('#purchaseExtraRow');
@@ -255,6 +276,21 @@
     };
 
     const setWarn = (msg='') => { els.warn.textContent = msg; };
+
+    const isSplitType = (type) => type === 'Сплит' || type === 'Обратный сплит';
+    const splitRatio = (operation) => operation.splitNew / operation.splitOld;
+    const updateBalance = (balance, operation) => {
+      if (isSplitType(operation.type)) return balance * splitRatio(operation);
+      return balance + (isIncomeType(operation.type) ? operation.qty : -operation.qty);
+    };
+    const firstInvalidOperation = (operations) => {
+      let balance = 0;
+      return operations.findIndex((operation) => {
+        if (isSplitType(operation.type) && balance <= EPS) return true;
+        balance = updateBalance(balance, operation);
+        return !Number.isFinite(balance) || balance < -EPS;
+      });
+    };
 
     const isIncomeType = (type) =>
       type === 'Покупка (Приход)' || type === 'Зачисление ЦБ (Приход)';
@@ -297,11 +333,12 @@
         tr.className = isIncomeType(op.type) ? 'purchase' : (isSaleType(op.type) ? 'sale' : 'transfer');
 
         // ✅ Цена: для списания показываем FIFO unit cost (writeOffUnitPrice)
-        const priceCell = isWriteOffType(op.type)
+        const split = isSplitType(op.type);
+        const priceCell = split ? '—' : isWriteOffType(op.type)
           ? (Number.isFinite(op.writeOffUnitPrice) ? fmt6(op.writeOffUnitPrice) : '-')
           : fmt6(op.price);
 
-        const qtyCell = fmt6(op.qty);
+        const qtyCell = split ? op.splitOld + ' → ' + op.splitNew : fmt6(op.qty);
 
         const commCell = (op.type === 'Покупка (Приход)') ? fmt6(op.commission || 0) : '-';
 
@@ -316,9 +353,9 @@
 
         tr.innerHTML = `
           <td>${i+1}</td>
-          <td class="editable" tabindex="0" data-field="type" data-index="${i}" aria-describedby="editHint">${op.type}</td>
-          <td class="editable" tabindex="0" data-field="qty" data-index="${i}" aria-describedby="editHint">${qtyCell}</td>
-          <td ${isWriteOffType(op.type) ? '' : 'class="editable" tabindex="0" data-field="price" aria-describedby="editHint"'} data-index="${i}">${priceCell}</td>
+          <td ${split ? '' : 'class="editable" tabindex="0" data-field="type" aria-describedby="editHint"'} data-index="${i}">${op.type}</td>
+          <td class="editable" tabindex="0" data-field="${split ? 'splitRatio' : 'qty'}" data-index="${i}" aria-describedby="editHint">${qtyCell}</td>
+          <td ${split || isWriteOffType(op.type) ? '' : 'class="editable" tabindex="0" data-field="price" aria-describedby="editHint"'} data-index="${i}">${priceCell}</td>
           <td ${op.type !== els.type.options[0].value ? '' : 'class="editable" tabindex="0" data-field="commission" aria-describedby="editHint"'} data-index="${i}">${commCell}</td>
 
           <td>${costCell}</td>
@@ -340,8 +377,7 @@
     const getAvailable = () => {
       let available = 0;
       for (const op of state.ops) {
-        if (isIncomeType(op.type)) available += op.qty;
-        else available -= op.qty;
+        available = updateBalance(available, op);
       }
       return available;
     };
@@ -383,8 +419,8 @@
     };
 
     const saveCalculations = (operations = state.ops, history = state.history) => {
-      const inputs = operations.map(({ type, qty, price, commission, includeCommission }) => ({
-        type, qty, price, commission, includeCommission
+      const inputs = operations.map(({ type, qty, price, commission, includeCommission, splitOld, splitNew }) => ({
+        type, qty, price, commission, includeCommission, splitOld, splitNew
       }));
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify({ operations: inputs, history }));
@@ -402,8 +438,8 @@
         time: Date.now(),
         quantity: snapshot.qty,
         average: snapshot.avg,
-        operations: state.ops.map(({ type, qty, price, commission, includeCommission }) => ({
-          type, qty, price, commission, includeCommission
+        operations: state.ops.map(({ type, qty, price, commission, includeCommission, splitOld, splitNew }) => ({
+          type, qty, price, commission, includeCommission, splitOld, splitNew
         }))
       };
     };
@@ -458,7 +494,13 @@
         op.avgRemain = NaN;
         op.writeOffUnitPrice = NaN;
 
-        if (isIncomeType(op.type)) {
+        if (isSplitType(op.type)) {
+          const ratio = splitRatio(op);
+          for (const lot of state.lots) {
+            lot.qty *= ratio;
+            lot.price /= ratio;
+          }
+        } else if (isIncomeType(op.type)) {
           let lotPrice = op.price;
 
           if (op.type === 'Покупка (Приход)' && op.includeCommission) {
@@ -496,6 +538,9 @@
     const onTypeChange = () => {
       const type = els.type.value;
 
+      const split = isSplitType(type);
+      els.tradeFields.style.display = split ? 'none' : '';
+      els.splitFields.hidden = !split;
       const hidePrice = isWriteOffType(type);
       els.priceField.style.display = hidePrice ? 'none' : 'block';
       els.price.disabled = hidePrice;
@@ -509,8 +554,27 @@
       }
     };
 
+    const validSplit = ({ type, splitOld, splitNew }) =>
+      Number.isSafeInteger(splitOld) && Number.isSafeInteger(splitNew) &&
+      splitOld > 0 && splitNew > 0 &&
+      (type === 'Сплит' ? splitNew > splitOld : splitNew < splitOld);
+
     const addOperation = () => {
       const type = els.type.value;
+
+      if (isSplitType(type)) {
+        const operation = { type, splitOld: parseNum(els.splitOld.value), splitNew: parseNum(els.splitNew.value) };
+        if (!validSplit(operation)) return setWarn('Введите положительные целые числа. При сплите новых акций больше, при обратном сплите — меньше.');
+        if (getAvailable() <= EPS) return setWarn('Для корпоративного события нужен положительный остаток акций.');
+        if (firstInvalidOperation([...state.ops, operation]) !== -1) return setWarn('Не удалось применить коэффициент к остатку.');
+        state.ops.push(operation);
+        compute();
+        setWarn('');
+        els.splitOld.value = '';
+        els.splitNew.value = '';
+        els.splitOld.focus();
+        return;
+      }
 
       const decCheck = validateDecimalsByInput(els.qty.value, DEC_INPUT_QTY_MAX);
       if (!decCheck.ok) {
@@ -583,12 +647,25 @@
 
       const control = field === 'type' ? els.type.cloneNode(true) : document.createElement('input');
       control.removeAttribute('id');
+      if (field === 'type') {
+        for (const option of Array.from(control.options)) {
+          if (isSplitType(option.value)) option.remove();
+        }
+      }
       control.setAttribute('aria-label', {
-        type: 'Тип операции', qty: 'Количество', price: 'Цена', commission: 'Комиссия'
+        splitRatio: 'Старых акций', type: 'Тип операции', qty: 'Количество', price: 'Цена', commission: 'Комиссия'
       }[field]);
       if (field !== 'type') control.inputMode = 'decimal';
-      control.value = String(operation[field]);
+      control.value = String(field === 'splitRatio' ? operation.splitOld : operation[field]);
       form.append(control);
+
+      const newShares = document.createElement('input');
+      if (field === 'splitRatio') {
+        newShares.inputMode = 'numeric';
+        newShares.setAttribute('aria-label', 'Новых акций');
+        newShares.value = String(operation.splitNew);
+        form.append(newShares);
+      }
 
       const newPrice = document.createElement('input');
       newPrice.inputMode = 'decimal';
@@ -648,7 +725,11 @@
         event.preventDefault();
         const fail = (message) => { els.editError.textContent = message; };
         const candidate = { ...operation };
-        if (field === 'type') {
+        if (field === 'splitRatio') {
+          candidate.splitOld = parseNum(control.value);
+          candidate.splitNew = parseNum(newShares.value);
+          if (!validSplit(candidate)) return fail('Проверьте коэффициент сплита. Нужны два положительных целых числа.');
+        } else if (field === 'type') {
           candidate.type = control.value;
           if (isWriteOffType(candidate.type)) candidate.price = NaN;
           else if (isWriteOffType(operation.type)) candidate.price = parseNum(newPrice.value);
@@ -662,10 +743,10 @@
         if (field === 'qty' && !validateDecimalsByInput(control.value, DEC_INPUT_QTY_MAX).ok) {
           return fail('В количестве допускается не более 16 знаков после запятой.');
         }
-        if (!Number.isFinite(candidate.qty) || candidate.qty <= 0) {
+        if (!isSplitType(candidate.type) && (!Number.isFinite(candidate.qty) || candidate.qty <= 0)) {
           return fail('Введите количество больше нуля.');
         }
-        if (!isWriteOffType(candidate.type) && (!Number.isFinite(candidate.price) || candidate.price <= 0)) {
+        if (!isSplitType(candidate.type) && !isWriteOffType(candidate.type) && (!Number.isFinite(candidate.price) || candidate.price <= 0)) {
           return fail('Введите цену больше нуля.');
         }
         if (field === 'commission') {
@@ -675,14 +756,8 @@
           candidate.includeCommission = includeCommission.checked;
         }
 
-        let available = 0;
-        for (let i = 0; i < state.ops.length; i++) {
-          const entry = i === index ? candidate : state.ops[i];
-          available += isIncomeType(entry.type) ? entry.qty : -entry.qty;
-          if (available < -EPS) {
-            return fail('Недостаточно бумаг для операции №' + (i + 1) + '. Проверьте тип или количество.');
-          }
-        }
+        const invalid = firstInvalidOperation(state.ops.map((entry, i) => i === index ? candidate : entry));
+        if (invalid !== -1) return fail('После правки недостаточно бумаг или неверен остаток для операции №' + (invalid + 1) + '.');
 
         state.ops[index] = candidate;
         els.editError.textContent = '';
@@ -703,7 +778,13 @@
       const i = Number(btn.dataset.i);
       if (Number.isNaN(i)) return;
 
-      state.ops.splice(i, 1);
+      const remaining = state.ops.filter((_, index) => index !== i);
+      if (state.ops.some((op) => isSplitType(op.type)) && firstInvalidOperation(remaining) !== -1) {
+        els.editError.textContent = 'После удаления нарушится остаток бумаг. Проверьте последующие операции.';
+        return;
+      }
+      els.editError.textContent = '';
+      state.ops = remaining;
       compute();
     };
 
@@ -887,6 +968,8 @@
       els.reset.addEventListener('click', resetAll);
       els.export.addEventListener('click', exportPdf);
 
+      els.splitOld.addEventListener('keydown', onKeyDown);
+      els.splitNew.addEventListener('keydown', onKeyDown);
       els.qty.addEventListener('keydown', onKeyDown);
       els.price.addEventListener('keydown', onKeyDown);
       els.commission.addEventListener('keydown', onKeyDown);
