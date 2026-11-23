@@ -75,6 +75,36 @@
     .splitIn { color: #166344; }
     .pnl-positive { color: #166344; font-weight: 700; }
     .pnl-negative { color: #9b2639; font-weight: 700; }
+
+    .tableWrap table { table-layout: fixed; }
+    .tableWrap th, .tableWrap td { padding: 9px 6px; overflow-wrap: anywhere; }
+    .tableWrap td { white-space: normal; }
+    .tableWrap th:nth-child(1) { width: 3%; }
+    .tableWrap th:nth-child(2), .tableWrap th:nth-child(3) { width: 11%; }
+    .tableWrap th:nth-child(4) { width: 12%; }
+    .tableWrap th:nth-child(5), .tableWrap th:nth-child(9) { width: 7%; }
+    .tableWrap th:nth-child(n+6):nth-child(-n+8),
+    .tableWrap th:nth-child(10), .tableWrap th:nth-child(11) { width: 9%; }
+    .tableWrap th:nth-child(12) { width: 4%; font-size: 0; }
+    .tableWrap .btn-del { width: min(36px, 100%); min-height: 36px; }
+    .tableWrap .cellEditor { min-width: 0; }
+    .tableWrap .cellEditor .btn { max-width: 100%; overflow-wrap: anywhere; }
+    .tableWrap .cellEditor input, .tableWrap .cellEditor select { min-width: 0; }
+
+    @media (max-width: 1100px) {
+      .tableWrap { max-height: none; }
+      .tableWrap table, .tableWrap tbody { display: block; }
+      .tableWrap thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+      .tableWrap tbody tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .tableWrap tbody tr + tr { border-top: 1px solid var(--line); }
+      .tableWrap tbody td, .tableWrap tbody td:nth-child(2) { min-width: 0; padding: 8px 12px; text-align: left; border-bottom: 0; }
+      .tableWrap td[data-label]::before { content: attr(data-label); display: block; color: var(--muted); font-size: 12px; }
+      .tableWrap td[data-label]:empty { display: none; }
+      .tableWrap td[colspan], .tableWrap td:last-child { grid-column: 1 / -1; }
+      .tableWrap td:last-child { text-align: right; }
+      .tableWrap td[colspan] { text-align: center; }
+    }
+
     @media (max-width: 650px) {
       .container { padding-top: 22px; }
       .summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -362,19 +392,19 @@
         const avgCell = Number.isFinite(op.avgRemain) ? fmt6(op.avgRemain) : '';
 
         tr.innerHTML = `
-          <td>${i+1}</td>
-          <td ${split ? '' : 'class="editable" tabindex="0" data-field="type" aria-describedby="editHint"'} data-index="${i}">${op.type}</td>
-          <td class="editable" tabindex="0" data-field="${split ? 'splitRatio' : 'qty'}" data-index="${i}" aria-describedby="editHint">${qtyCell}</td>
-          <td ${split || isWriteOffType(op.type) ? '' : 'class="editable" tabindex="0" data-field="price" aria-describedby="editHint"'} data-index="${i}">${priceCell}</td>
-          <td ${op.type !== els.type.options[0].value ? '' : 'class="editable" tabindex="0" data-field="commission" aria-describedby="editHint"'} data-index="${i}">${commCell}</td>
+          <td data-label="№">${i+1}</td>
+          <td data-label="Тип" ${split ? '' : 'class="editable" tabindex="0" data-field="type" aria-describedby="editHint"'} data-index="${i}">${op.type}</td>
+          <td data-label="Кол-во" class="editable" tabindex="0" data-field="${split ? 'splitRatio' : 'qty'}" data-index="${i}" aria-describedby="editHint">${qtyCell}</td>
+          <td data-label="Цена" ${split || isWriteOffType(op.type) ? '' : 'class="editable" tabindex="0" data-field="price" aria-describedby="editHint"'} data-index="${i}">${priceCell}</td>
+          <td data-label="Комиссия" ${op.type !== els.type.options[0].value ? '' : 'class="editable" tabindex="0" data-field="commission" aria-describedby="editHint"'} data-index="${i}">${commCell}</td>
 
-          <td>${costCell}</td>
-          <td>${revenueCell}</td>
-          <td class="${pnlClass}">${pnlCell}</td>
+          <td data-label="Себестоимость">${costCell}</td>
+          <td data-label="Сумма при продаже">${revenueCell}</td>
+          <td data-label="Прибыль / Убыток" class="${pnlClass}">${pnlCell}</td>
 
-          <td>${remainCell}</td>
-          <td>${balCell}</td>
-          <td>${avgCell}</td>
+          <td data-label="Остаток (шт)">${remainCell}</td>
+          <td data-label="Балансовая стоимость остатка">${balCell}</td>
+          <td data-label="Сред. цена на остаток по FIFO">${avgCell}</td>
 
           <td><button class="btn-del" data-i="${i}" title="Удалить операцию ${i+1}" aria-label="Удалить операцию ${i+1}">×</button></td>
         `;
