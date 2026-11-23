@@ -70,6 +70,9 @@
     .editError:empty { position: absolute; }
     .muted { color: var(--muted); }
     .summary dd, td { font-variant-numeric: tabular-nums; }
+    .splitMovement { display: block; font-size: 12px; }
+    .splitOut { color: #9b2639; }
+    .splitIn { color: #166344; }
     .pnl-positive { color: #166344; font-weight: 700; }
     .pnl-negative { color: #9b2639; font-weight: 700; }
     @media (max-width: 650px) {
@@ -338,7 +341,11 @@
           ? (Number.isFinite(op.writeOffUnitPrice) ? fmt6(op.writeOffUnitPrice) : '-')
           : fmt6(op.price);
 
-        const qtyCell = split ? op.splitOld + ' → ' + op.splitNew : fmt6(op.qty);
+        const qtyCell = split
+          ? `<span class="muted splitMovement">Коэффициент ${op.splitOld} → ${op.splitNew}</span>
+             <span class="splitMovement splitOut">Списание −${fmt6(op.splitQtyBefore)} шт.</span>
+             <span class="splitMovement splitIn">Зачисление +${fmt6(op.remain)} шт.</span>`
+          : fmt6(op.qty);
 
         const commCell = (op.type === 'Покупка (Приход)') ? fmt6(op.commission || 0) : '-';
 
@@ -495,6 +502,7 @@
         op.writeOffUnitPrice = NaN;
 
         if (isSplitType(op.type)) {
+          op.splitQtyBefore = calcRemainSnapshot().qty;
           const ratio = splitRatio(op);
           for (const lot of state.lots) {
             lot.qty *= ratio;
