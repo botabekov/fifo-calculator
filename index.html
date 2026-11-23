@@ -57,6 +57,12 @@
     .cellEditor { display: grid; gap: 6px; min-width: 135px; text-align: left; white-space: normal; }
     .cellEditor .btn { padding-inline: 8px; }
     .cellEditor .checkRow { font-size: 12px; }
+    .history { margin-top: 16px; padding: 12px 16px; }
+    .history summary { cursor: pointer; font-weight: 600; }
+    .history ul { padding: 0; margin: 10px 0 0; list-style: none; }
+    .history li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 0; border-top: 1px solid var(--line); }
+    .storageStatus { margin-bottom: 12px; color: #9b2639; }
+    .storageStatus:empty { position: absolute; }
     .editHint { margin: 0 16px 10px; font-size: 13px; }
     .editError { margin: 0 16px 10px; color: #9b2639; }
     .editError:empty { position: absolute; }
@@ -88,6 +94,7 @@
       <div><dt>Сред. цена на остаток по FIFO</dt><dd id="summaryAvg">—</dd></div>
     </dl>
 
+    <p class="storageStatus" id="storageStatus" role="status"></p>
     <section class="panel" id="inputBlock" aria-labelledby="inputTitle">
       <h2 id="inputTitle">Новая операция</h2>
       <div class="formFields">
@@ -167,6 +174,11 @@
         </table>
       </div>
     </section>
+    <details class="history panel">
+      <summary>История расчётов <span id="historyCount"></span></summary>
+      <p class="muted">Операции сохраняются в этом браузере. Кнопка «Очистить всё» переносит текущий расчёт в историю.</p>
+      <ul id="historyList"></ul>
+    </details>
   </div>
 
   <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
@@ -227,12 +239,17 @@
 
       els.table = $('#operationsTable');
       els.editError = $('#editError');
+      els.storageStatus = $('#storageStatus');
+      els.historyList = $('#historyList');
+      els.historyCount = $('#historyCount');
       els.summaryQty = $('#summaryQty');
       els.summaryValue = $('#summaryValue');
       els.summaryAvg = $('#summaryAvg');
     };
 
+    const STORAGE_KEY = 'fifo-calculator:calculations:v1';
     const state = {
+      history: [],
       ops: [],
       lots: [] // {qty, price} price = unit cost
     };
@@ -350,7 +367,84 @@
       return { cost: round(cost, DEC_DISPLAY), unit: round(unit, DEC_DISPLAY) };
     };
 
-    const compute = () => {
+    const readCalculations = () => {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        const saved = JSON.parse(raw);
+        if (!Array.isArray(saved.operations) || !Array.isArray(saved.history)) {
+          throw new Error('Invalid storage format');
+        }
+        state.ops = saved.operations;
+        state.history = saved.history;
+      } catch {
+        els.storageStatus.textContent = 'Не удалось прочитать сохранённые расчёты.';
+      }
+    };
+
+    const saveCalculations = (operations = state.ops, history = state.history) => {
+      const inputs = operations.map(({ type, qty, price, commission, includeCommission }) => ({
+        type, qty, price, commission, includeCommission
+      }));
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ operations: inputs, history }));
+        els.storageStatus.textContent = '';
+        return true;
+      } catch {
+        els.storageStatus.textContent = 'Браузер не сохранил изменения. Таблица доступна до закрытия страницы.';
+        return false;
+      }
+    };
+
+    const archiveCurrent = () => {
+      const snapshot = calcRemainSnapshot();
+      return {
+        time: Date.now(),
+        quantity: snapshot.qty,
+        average: snapshot.avg,
+        operations: state.ops.map(({ type, qty, price, commission, includeCommission }) => ({
+          type, qty, price, commission, includeCommission
+        }))
+      };
+    };
+
+    const renderHistory = () => {
+      els.historyCount.textContent = '(' + state.history.length + ')';
+      els.historyList.replaceChildren();
+      if (!state.history.length) {
+        const empty = document.createElement('li');
+        empty.textContent = 'Сохранённых расчётов пока нет.';
+        els.historyList.append(empty);
+        return;
+      }
+      state.history.forEach((entry, index) => {
+        const item = document.createElement('li');
+        const description = document.createElement('span');
+        description.textContent = new Date(entry.time).toLocaleString('ru-RU') +
+          ' · Операций: ' + entry.operations.length + ' · Остаток: ' + fmt6(entry.quantity) +
+          (entry.quantity > EPS ? ' · Средняя цена: ' + fmt6(entry.average) : '');
+        const restore = document.createElement('button');
+        restore.className = 'btn';
+        restore.type = 'button';
+        restore.textContent = 'Восстановить';
+        restore.addEventListener('click', () => {
+          const history = state.history.filter((_, position) => position !== index);
+          if (state.ops.length) history.unshift(archiveCurrent());
+          if (!saveCalculations(entry.operations, history)) return;
+          state.ops = entry.operations;
+          state.history = history;
+          els.editError.textContent = '';
+          setWarn('');
+          compute(false);
+          renderHistory();
+          els.qty.focus();
+        });
+        item.append(description, restore);
+        els.historyList.append(item);
+      });
+    };
+
+    const compute = (persist = true) => {
       state.lots = [];
 
       for (let idx = 0; idx < state.ops.length; idx++) {
@@ -396,6 +490,7 @@
       }
 
       renderRows();
+      if (persist) saveCalculations();
     };
 
     const onTypeChange = () => {
@@ -613,8 +708,12 @@
     };
 
     const resetAll = () => {
-      state.ops.length = 0;
-      state.lots.length = 0;
+      const history = state.ops.length ? [archiveCurrent(), ...state.history] : state.history;
+      if (!saveCalculations([], history)) return;
+      state.ops = [];
+      state.history = history;
+      state.lots = [];
+      renderHistory();
       setWarn('');
       els.editError.textContent = '';
       renderRows();
@@ -794,7 +893,9 @@
       els.type.addEventListener('keydown', onKeyDown);
 
       onTypeChange();
-      renderRows();
+      readCalculations();
+      compute(false);
+      renderHistory();
     });
   })();
   </script>
