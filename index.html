@@ -52,6 +52,14 @@
     th:last-child, td:last-child, td[colspan] { text-align: center; }
     tbody tr:nth-child(even) td { background: #f7f9fc; }
     tbody tr:hover td { background: #edf3fb; }
+    .editable { cursor: text; }
+    .editable:hover { text-decoration: underline dotted; text-underline-offset: 4px; }
+    .cellEditor { display: grid; gap: 6px; min-width: 135px; text-align: left; white-space: normal; }
+    .cellEditor .btn { padding-inline: 8px; }
+    .cellEditor .checkRow { font-size: 12px; }
+    .editHint { margin: 0 16px 10px; font-size: 13px; }
+    .editError { margin: 0 16px 10px; color: #9b2639; }
+    .editError:empty { position: absolute; }
     .muted { color: var(--muted); }
     .summary dd, td { font-variant-numeric: tabular-nums; }
     .pnl-positive { color: #166344; font-weight: 700; }
@@ -130,6 +138,8 @@
           <button class="btn" id="exportBtn">Выгрузить PDF</button>
         </div>
       </div>
+      <p class="editHint muted" id="editHint">Двойное нажатие по ячейке открывает редактирование. Enter — сохранить, Esc — отменить.</p>
+      <p id="editError" class="editError" role="alert"></p>
       <div class="tableWrap" tabindex="0" role="region" aria-label="Таблица операций с прокруткой">
         <table id="operationsTable" aria-label="Список операций">
           <thead>
@@ -216,6 +226,7 @@
       els.export = $('#exportBtn');
 
       els.table = $('#operationsTable');
+      els.editError = $('#editError');
       els.summaryQty = $('#summaryQty');
       els.summaryValue = $('#summaryValue');
       els.summaryAvg = $('#summaryAvg');
@@ -248,7 +259,10 @@
       };
     };
 
+    let cancelCellEdit = null;
+
     const renderRows = () => {
+      cancelCellEdit?.();
       const snapshot = calcRemainSnapshot();
       const hasOperations = state.ops.length > 0;
       els.summaryQty.textContent = hasOperations ? fmt6(snapshot.qty) : '—';
@@ -285,10 +299,10 @@
 
         tr.innerHTML = `
           <td>${i+1}</td>
-          <td>${op.type}</td>
-          <td>${qtyCell}</td>
-          <td>${priceCell}</td>
-          <td>${commCell}</td>
+          <td class="editable" tabindex="0" data-field="type" data-index="${i}" aria-describedby="editHint">${op.type}</td>
+          <td class="editable" tabindex="0" data-field="qty" data-index="${i}" aria-describedby="editHint">${qtyCell}</td>
+          <td ${isWriteOffType(op.type) ? '' : 'class="editable" tabindex="0" data-field="price" aria-describedby="editHint"'} data-index="${i}">${priceCell}</td>
+          <td ${op.type !== els.type.options[0].value ? '' : 'class="editable" tabindex="0" data-field="commission" aria-describedby="editHint"'} data-index="${i}">${commCell}</td>
 
           <td>${costCell}</td>
           <td>${revenueCell}</td>
@@ -459,6 +473,135 @@
       els.qty.focus();
     };
 
+    const editCell = (cell) => {
+      if (!cell || cell.querySelector('form')) return;
+      cancelCellEdit?.();
+      els.editError.textContent = '';
+
+      const index = Number(cell.dataset.index);
+      const field = cell.dataset.field;
+      const operation = state.ops[index];
+      const purchaseType = els.type.options[0].value;
+      const original = cell.textContent;
+      const form = document.createElement('form');
+      form.className = 'cellEditor';
+
+      const control = field === 'type' ? els.type.cloneNode(true) : document.createElement('input');
+      control.removeAttribute('id');
+      control.setAttribute('aria-label', {
+        type: 'Тип операции', qty: 'Количество', price: 'Цена', commission: 'Комиссия'
+      }[field]);
+      if (field !== 'type') control.inputMode = 'decimal';
+      control.value = String(operation[field]);
+      form.append(control);
+
+      const newPrice = document.createElement('input');
+      newPrice.inputMode = 'decimal';
+      newPrice.placeholder = 'Цена';
+      newPrice.setAttribute('aria-label', 'Цена для нового типа операции');
+      if (field === 'type' && isWriteOffType(operation.type)) {
+        const updatePriceVisibility = () => { newPrice.hidden = isWriteOffType(control.value); };
+        control.addEventListener('change', updatePriceVisibility);
+        updatePriceVisibility();
+        form.append(newPrice);
+      }
+
+      const includeCommission = document.createElement('input');
+      includeCommission.type = 'checkbox';
+      includeCommission.checked = operation.includeCommission;
+      if (field === 'commission') {
+        const label = document.createElement('label');
+        label.className = 'checkRow';
+        label.append(includeCommission, 'Учесть в себестоимости');
+        form.append(label);
+      }
+
+      const actions = document.createElement('div');
+      actions.className = 'actions';
+      const save = document.createElement('button');
+      save.className = 'btn';
+      save.type = 'submit';
+      save.textContent = 'Сохранить';
+      const cancel = document.createElement('button');
+      cancel.className = 'btn';
+      cancel.type = 'button';
+      cancel.textContent = 'Отмена';
+      actions.append(save, cancel);
+      form.append(actions);
+
+      const close = () => {
+        cell.textContent = original;
+        cancelCellEdit = null;
+      };
+      cancelCellEdit = close;
+      const cancelAndFocus = () => {
+        close();
+        els.editError.textContent = '';
+        cell.focus();
+      };
+      cancel.addEventListener('click', cancelAndFocus);
+      form.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          cancelAndFocus();
+        } else if (event.key === 'Enter' && event.target === control && field !== 'type') {
+          event.preventDefault();
+          form.requestSubmit();
+        }
+      });
+      form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const fail = (message) => { els.editError.textContent = message; };
+        const candidate = { ...operation };
+        if (field === 'type') {
+          candidate.type = control.value;
+          if (isWriteOffType(candidate.type)) candidate.price = NaN;
+          else if (isWriteOffType(operation.type)) candidate.price = parseNum(newPrice.value);
+          if (candidate.type !== operation.type) {
+            candidate.commission = candidate.type === purchaseType ? 0 : NaN;
+            candidate.includeCommission = false;
+          }
+        } else {
+          candidate[field] = parseNum(control.value);
+        }
+        if (field === 'qty' && !validateDecimalsByInput(control.value, DEC_INPUT_QTY_MAX).ok) {
+          return fail('В количестве допускается не более 16 знаков после запятой.');
+        }
+        if (!Number.isFinite(candidate.qty) || candidate.qty <= 0) {
+          return fail('Введите количество больше нуля.');
+        }
+        if (!isWriteOffType(candidate.type) && (!Number.isFinite(candidate.price) || candidate.price <= 0)) {
+          return fail('Введите цену больше нуля.');
+        }
+        if (field === 'commission') {
+          if (!Number.isFinite(candidate.commission) || candidate.commission < 0) {
+            return fail('Введите комиссию больше или равную нулю.');
+          }
+          candidate.includeCommission = includeCommission.checked;
+        }
+
+        let available = 0;
+        for (let i = 0; i < state.ops.length; i++) {
+          const entry = i === index ? candidate : state.ops[i];
+          available += isIncomeType(entry.type) ? entry.qty : -entry.qty;
+          if (available < -EPS) {
+            return fail('Недостаточно бумаг для операции №' + (i + 1) + '. Проверьте тип или количество.');
+          }
+        }
+
+        state.ops[index] = candidate;
+        els.editError.textContent = '';
+        close();
+        compute();
+        const updatedRow = els.tableBody.rows[index];
+        (updatedRow.querySelector('[data-field="' + field + '"]') || updatedRow.querySelector('[data-field="type"]')).focus();
+      });
+
+      cell.replaceChildren(form);
+      control.focus();
+      if (field !== 'type') control.select();
+    };
+
     const onTableClick = (e) => {
       const btn = e.target.closest('.btn-del');
       if (!btn) return;
@@ -473,6 +616,7 @@
       state.ops.length = 0;
       state.lots.length = 0;
       setWarn('');
+      els.editError.textContent = '';
       renderRows();
 
       els.qty.value = '';
@@ -499,6 +643,7 @@
         return;
       }
 
+      cancelCellEdit?.();
       const prev = els.export.textContent;
       els.export.textContent = 'Формирую PDF…';
       els.export.disabled = true;
@@ -634,6 +779,12 @@
       els.type.addEventListener('change', onTypeChange);
       els.add.addEventListener('click', addOperation);
       els.table.addEventListener('click', onTableClick);
+      els.table.addEventListener('dblclick', (event) => editCell(event.target.closest('[data-field]')));
+      els.table.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter' || !event.target.matches('[data-field]')) return;
+        event.preventDefault();
+        editCell(event.target);
+      });
       els.reset.addEventListener('click', resetAll);
       els.export.addEventListener('click', exportPdf);
 
