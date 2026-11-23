@@ -70,7 +70,8 @@
     .editError:empty { position: absolute; }
     .muted { color: var(--muted); }
     .summary dd, td { font-variant-numeric: tabular-nums; }
-    .splitMovement { display: block; font-size: 12px; }
+    .splitMovement { display: block; line-height: 1.5; }
+    .splitRatioLabel { display: block; margin-top: 2px; font-size: 11px; }
     .splitOut { color: #9b2639; }
     .splitIn { color: #166344; }
     .pnl-positive { color: #166344; font-weight: 700; }
@@ -78,10 +79,15 @@
 
     .tableWrap table { table-layout: fixed; }
     .tableWrap th, .tableWrap td { padding: 9px 6px; overflow-wrap: anywhere; }
-    .tableWrap td { white-space: normal; }
+    .tableWrap td { white-space: normal; vertical-align: middle; }
+    .tableWrap td:nth-child(n+3):nth-child(-n+11) { font-size: clamp(11px, .94vw, 13px); }
+    .tableWrap .tableNumber { white-space: nowrap; }
+    .tableWrap .tableNumberLong { font-size: .88em; }
+    .tableWrap .splitMovement { white-space: nowrap; font-size: .92em; }
+    .tableWrap .splitPrice { display: none; }
     .tableWrap th:nth-child(1) { width: 3%; }
-    .tableWrap th:nth-child(2), .tableWrap th:nth-child(3) { width: 11%; }
-    .tableWrap th:nth-child(4) { width: 12%; }
+    .tableWrap th:nth-child(2), .tableWrap th:nth-child(3) { width: 12%; }
+    .tableWrap th:nth-child(4) { width: 9%; }
     .tableWrap th:nth-child(5), .tableWrap th:nth-child(9) { width: 7%; }
     .tableWrap th:nth-child(n+6):nth-child(-n+8),
     .tableWrap th:nth-child(10), .tableWrap th:nth-child(11) { width: 9%; }
@@ -91,8 +97,11 @@
     .tableWrap .cellEditor .btn { max-width: 100%; overflow-wrap: anywhere; }
     .tableWrap .cellEditor input, .tableWrap .cellEditor select { min-width: 0; }
 
-    @media (max-width: 1100px) {
+    @media (max-width: 1160px) {
       .tableWrap { max-height: none; }
+      .tableWrap td:nth-child(n+3):nth-child(-n+11) { font-size: 13px; text-align: right; }
+      .tableWrap tbody tr.splitOperation td[data-label="Кол-во"] { text-align: left; }
+      .tableWrap .splitPrice { display: inline; }
       .tableWrap table, .tableWrap tbody { display: block; }
       .tableWrap thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
       .tableWrap tbody tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -269,6 +278,13 @@
     });
     const fmt6 = (n) => Number.isFinite(n) ? nf6.format(round(n, DEC_DISPLAY)).replace(/\u00A0/g," ") : "";
 
+    const tableNumber = (formatted) => {
+      if (!formatted) return '';
+      const value = formatted.replace(/(,\d*?[1-9])0+$|,0+$/, '$1');
+      const size = value.length > 13 ? ' tableNumberLong' : '';
+      return `<span class="tableNumber${size}">${value}</span>`;
+    };
+
     const els = {};
     const bindEls = () => {
       els.tableBody = $('#operationsTable tbody');
@@ -367,17 +383,17 @@
 
         // ✅ Цена: для списания показываем FIFO unit cost (writeOffUnitPrice)
         const split = isSplitType(op.type);
+        if (split) tr.classList.add('splitOperation');
         const priceCell = split
-          ? `<span class="splitMovement splitOut">Сред. списания: ${fmt6(op.splitAvgBefore)}</span>
-             <span class="splitMovement splitIn">Сред. зачисления: ${fmt6(op.avgRemain)}</span>`
+          ? `<span class="splitMovement splitOut"><span class="splitPrice">Списание </span>${tableNumber(fmt6(op.splitAvgBefore))}</span>
+             <span class="splitMovement splitIn"><span class="splitPrice">Зачисление </span>${tableNumber(fmt6(op.avgRemain))}</span>`
           : isWriteOffType(op.type)
             ? (Number.isFinite(op.writeOffUnitPrice) ? fmt6(op.writeOffUnitPrice) : '-')
             : fmt6(op.price);
 
         const qtyCell = split
-          ? `<span class="muted splitMovement">Коэффициент ${op.splitOld} → ${op.splitNew}</span>
-             <span class="splitMovement splitOut">Списание −${fmt6(op.splitQtyBefore)} шт.</span>
-             <span class="splitMovement splitIn">Зачисление +${fmt6(op.remain)} шт.</span>`
+          ? `<span class="splitMovement splitOut">Списание ${tableNumber('−' + fmt6(op.splitQtyBefore))}</span>
+             <span class="splitMovement splitIn">Зачисление ${tableNumber('+' + fmt6(op.remain))}</span>`
           : fmt6(op.qty);
 
         const commCell = (op.type === 'Покупка (Приход)') ? fmt6(op.commission || 0) : '-';
@@ -393,18 +409,18 @@
 
         tr.innerHTML = `
           <td data-label="№">${i+1}</td>
-          <td data-label="Тип" ${split ? '' : 'class="editable" tabindex="0" data-field="type" aria-describedby="editHint"'} data-index="${i}">${op.type}</td>
-          <td data-label="Кол-во" class="editable" tabindex="0" data-field="${split ? 'splitRatio' : 'qty'}" data-index="${i}" aria-describedby="editHint">${qtyCell}</td>
-          <td data-label="Цена" ${split || isWriteOffType(op.type) ? '' : 'class="editable" tabindex="0" data-field="price" aria-describedby="editHint"'} data-index="${i}">${priceCell}</td>
-          <td data-label="Комиссия" ${op.type !== els.type.options[0].value ? '' : 'class="editable" tabindex="0" data-field="commission" aria-describedby="editHint"'} data-index="${i}">${commCell}</td>
+          <td data-label="Тип" ${split ? '' : 'class="editable" tabindex="0" data-field="type" aria-describedby="editHint"'} data-index="${i}">${op.type}${split ? `<span class="muted splitRatioLabel">Коэффициент ${op.splitOld} → ${op.splitNew}</span>` : ''}</td>
+          <td data-label="Кол-во" class="editable" tabindex="0" data-field="${split ? 'splitRatio' : 'qty'}" data-index="${i}" aria-describedby="editHint">${split ? qtyCell : tableNumber(qtyCell)}</td>
+          <td data-label="Цена" ${split || isWriteOffType(op.type) ? '' : 'class="editable" tabindex="0" data-field="price" aria-describedby="editHint"'} data-index="${i}">${split ? priceCell : tableNumber(priceCell)}</td>
+          <td data-label="Комиссия" ${op.type !== els.type.options[0].value ? '' : 'class="editable" tabindex="0" data-field="commission" aria-describedby="editHint"'} data-index="${i}">${tableNumber(commCell)}</td>
 
-          <td data-label="Себестоимость">${costCell}</td>
-          <td data-label="Сумма при продаже">${revenueCell}</td>
-          <td data-label="Прибыль / Убыток" class="${pnlClass}">${pnlCell}</td>
+          <td data-label="Себестоимость">${tableNumber(costCell)}</td>
+          <td data-label="Сумма при продаже">${tableNumber(revenueCell)}</td>
+          <td data-label="Прибыль / Убыток" class="${pnlClass}">${tableNumber(pnlCell)}</td>
 
-          <td data-label="Остаток (шт)">${remainCell}</td>
-          <td data-label="Балансовая стоимость остатка">${balCell}</td>
-          <td data-label="Сред. цена на остаток по FIFO">${avgCell}</td>
+          <td data-label="Остаток (шт)">${tableNumber(remainCell)}</td>
+          <td data-label="Балансовая стоимость остатка">${tableNumber(balCell)}</td>
+          <td data-label="Сред. цена на остаток по FIFO">${tableNumber(avgCell)}</td>
 
           <td><button class="btn-del" data-i="${i}" title="Удалить операцию ${i+1}" aria-label="Удалить операцию ${i+1}">×</button></td>
         `;
@@ -684,7 +700,7 @@
       const field = cell.dataset.field;
       const operation = state.ops[index];
       const purchaseType = els.type.options[0].value;
-      const original = cell.textContent;
+      const original = cell.innerHTML;
       const form = document.createElement('form');
       form.className = 'cellEditor';
 
@@ -745,7 +761,7 @@
       form.append(actions);
 
       const close = () => {
-        cell.textContent = original;
+        cell.innerHTML = original;
         cancelCellEdit = null;
       };
       cancelCellEdit = close;
