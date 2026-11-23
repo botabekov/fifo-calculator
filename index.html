@@ -337,9 +337,12 @@
 
         // ✅ Цена: для списания показываем FIFO unit cost (writeOffUnitPrice)
         const split = isSplitType(op.type);
-        const priceCell = split ? '—' : isWriteOffType(op.type)
-          ? (Number.isFinite(op.writeOffUnitPrice) ? fmt6(op.writeOffUnitPrice) : '-')
-          : fmt6(op.price);
+        const priceCell = split
+          ? `<span class="splitMovement splitOut">Сред. списания: ${fmt6(op.splitAvgBefore)}</span>
+             <span class="splitMovement splitIn">Сред. зачисления: ${fmt6(op.avgRemain)}</span>`
+          : isWriteOffType(op.type)
+            ? (Number.isFinite(op.writeOffUnitPrice) ? fmt6(op.writeOffUnitPrice) : '-')
+            : fmt6(op.price);
 
         const qtyCell = split
           ? `<span class="muted splitMovement">Коэффициент ${op.splitOld} → ${op.splitNew}</span>
@@ -502,7 +505,9 @@
         op.writeOffUnitPrice = NaN;
 
         if (isSplitType(op.type)) {
-          op.splitQtyBefore = calcRemainSnapshot().qty;
+          const before = calcRemainSnapshot();
+          op.splitQtyBefore = before.qty;
+          op.splitAvgBefore = before.avg;
           const ratio = splitRatio(op);
           for (const lot of state.lots) {
             lot.qty *= ratio;
